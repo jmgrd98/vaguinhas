@@ -89,7 +89,7 @@ export default function Home() {
             variant="default"
             size="lg"
             onClick={saveEmail}
-            disabled={!!validationError || status === "loading"}
+            disabled={!email || !!validationError || status === "loading"}
           >
             {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
           </Button>
