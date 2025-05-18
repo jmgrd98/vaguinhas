@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     });
 
     const mailOptions = {
-      from: `Vaguinhas <${process.env.EMAIL_FROM}>`,
+      from: `vaguinhas <${process.env.EMAIL_FROM}>`,
       to: normalizedEmail,
       subject: "Confirmação de cadastro - vaguinhas",
       html: `
@@ -66,14 +66,17 @@ export async function POST(request: Request) {
           </table>
           <h1 style="color: #ff914d; font-size: 24px; margin-top: 0">Obrigado por se cadastrar!</h1>
           <p style="font-size: 16px; line-height: 1.5;">
-            Você receberá vagas de tecnologia diariamente em seu e-mail.
+            Você receberá vaguinhas de tecnologia nesse e-mail diariamente! 😊
+          </p>
+          <p style="font-size: 16px; line-height: 1.5;">
+            Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" style="color: #ff914d; text-decoration: none;">LinkedIn</a> para levar uma ideia.
           </p>
           <p style="font-size: 16px; line-height: 1.5;">
             Caso não tenha sido você, por favor ignore este e-mail.
           </p>
           <hr style="margin: 30px 0; border: 1px solid #e5e7eb;">
           <small style="color: #6b7280;">
-            Equipe Vaguinhas
+            João Marcelo Dantas
           </small>
         </div>
       `,
