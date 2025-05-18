@@ -61,10 +61,9 @@ export default function Home() {
         />
         <div className="flex flex-col gap-5 items-center">
           <p className="mb-2 text-xl font-bold text-center">
-            Insira seu e-mail para receber vagas em tecnologia todos os dias!
+            Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada!
           </p>
           <Input
-            // use native HTML5 email validation
             ref={inputRef}
             type="email"
             placeholder="Insira seu e-mail"
@@ -77,10 +76,9 @@ export default function Home() {
             variant="default"
             size="lg"
             onClick={saveEmail}
-            // disable unless input is both non‑empty *and* valid, or if we're loading
             disabled={!isValid || status === "loading"}
           >
-            {status === "loading" ? "Enviando…" : "Enviar"}
+            {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
           </Button>
 
           {status === "error" && (

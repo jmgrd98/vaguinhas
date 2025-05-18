@@ -81,6 +81,26 @@ export async function POST(request: Request) {
 
     await transporter.sendMail(mailOptions);
 
+    const adminMailOptions = {
+    from: `Vaguinhas <${process.env.EMAIL_FROM}>`,
+    to: "jmgrd98@gmail.com",
+    subject: "Novo email foi cadastrado no vaguinhas",
+    html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
+        <h1 style="color: #ff914d; font-size: 24px; margin-top: 0">Novo cadastro realizado!</h1>
+        <p style="font-size: 16px; line-height: 1.5;">
+            O email <strong>${normalizedEmail}</strong> foi cadastrado no sistema.
+        </p>
+        <hr style="margin: 30px 0; border: 1px solid #e5e7eb;">
+        <small style="color: #6b7280;">
+            Equipe Vaguinhas
+        </small>
+        </div>
+    `,
+    };
+
+    await transporter.sendMail(adminMailOptions);
+
     return NextResponse.json({ message: "E-mail salvo e confirmação enviada" }, { status: 201 });
   } catch (error) {
     console.error("Error:", error);
