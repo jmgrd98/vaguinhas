@@ -17,15 +17,12 @@ export default function Home() {
     "idle" | "loading" | "success" | "error"
   >("idle");
 
-  // track whether the email field is valid
   const [isValid, setIsValid] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // every time `email` changes, re‑check validity via the browser
   useEffect(() => {
     if (inputRef.current) {
       setIsValid(inputRef.current.checkValidity());
-      // clear any previous error status if user starts typing again
       if (status === "error" || status === "success") {
         setStatus("idle");
       }
@@ -34,7 +31,6 @@ export default function Home() {
 
   const saveEmail = async () => {
     if (!isValid) {
-      // shouldn't happen since button is disabled, but double‑check
       return;
     }
     setStatus("loading");
