@@ -10,6 +10,9 @@ import {
   AlertTitle,
   AlertDescription,
 } from "@/components/ui/alert";
+import { z } from "zod";
+
+const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -17,22 +20,29 @@ export default function Home() {
     "idle" | "loading" | "success" | "error"
   >("idle");
 
-  const [isValid, setIsValid] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (inputRef.current) {
-      setIsValid(inputRef.current.checkValidity());
-      if (status === "error" || status === "success") {
-        setStatus("idle");
+  const validateEmail = () => {
+    try {
+      emailSchema.parse(email);
+      setValidationError(null);
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        setValidationError(error.errors[0].message);
       }
+      return false;
     }
+  };
+
+  useEffect(() => {
+    if (email) validateEmail();
   }, [email]);
 
   const saveEmail = async () => {
-    if (!isValid) {
-      return;
-    }
+    if (!validateEmail()) return;
+    
     setStatus("loading");
     try {
       const res = await fetch("/api/save-email", {
@@ -40,7 +50,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
+      
       if (!res.ok) throw new Error(await res.text());
+      
       setStatus("success");
       setEmail("");
     } catch (err) {
@@ -48,6 +60,7 @@ export default function Home() {
       setStatus("error");
     }
   };
+
 
   return (
     <div className="min-h-screen w-full flex flex-col">
@@ -72,11 +85,11 @@ export default function Home() {
             onChange={(e) => setEmail(e.currentTarget.value)}
           />
           <Button
-            className="w-full"
+            className="w-full cursor-pointer hover:scale-105"
             variant="default"
             size="lg"
             onClick={saveEmail}
-            disabled={!isValid || status === "loading"}
+            disabled={!!validationError || status === "loading"}
           >
             {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
           </Button>
