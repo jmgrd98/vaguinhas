@@ -31,7 +31,7 @@ export async function POST(request: Request) {
 
     const { db } = await connectToDatabase();
 
-    const existing = await db.collection("emails").findOne({ email: normalizedEmail });
+    const existing = await db.collection("users").findOne({ email: normalizedEmail });
     if (existing) {
       return NextResponse.json(
         { message: "Este e-mail já está cadastrado" },
@@ -39,10 +39,11 @@ export async function POST(request: Request) {
       );
     }
 
-    await db.collection("emails").insertOne({
+    await db.collection("users").insertOne({
       email: normalizedEmail,
+      seniorityLevel: "junior",
+      stacks: [],
       createdAt: new Date(),
-      confirmed: false,
     });
 
     const mailOptions = {
