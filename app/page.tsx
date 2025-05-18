@@ -18,11 +18,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
 export default function Home() {
   const [email, setEmail] = useState("");
+  // const [seniorityLevel, setSeniorityLevel] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -55,7 +63,10 @@ export default function Home() {
       const res = await fetch("/api/save-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ 
+          email,
+          // seniorityLevel
+         }),
       });
       
       if (!res.ok) throw new Error(await res.text());
@@ -91,6 +102,20 @@ export default function Home() {
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
           />
+         {/* <Select 
+            value={seniorityLevel}
+            onValueChange={setSeniorityLevel}
+            required
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione seu nível profissional" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="junior">Júnior</SelectItem>
+              <SelectItem value="mid-level">Pleno</SelectItem>
+              <SelectItem value="senior">Sênior</SelectItem>
+            </SelectContent>
+          </Select> */}
           <Button
             className="w-full cursor-pointer hover:scale-105"
             variant="default"
