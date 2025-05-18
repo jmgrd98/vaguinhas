@@ -11,6 +11,13 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
+import { FaWhatsapp } from "react-icons/fa";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -123,6 +130,24 @@ export default function Home() {
           Desenvolvido por João Marcelo Dantas
         </a>
       </footer>
+
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <a
+              href="https://wa.me/5561996386998"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="fixed bottom-4 right-4 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"
+            >
+              <FaWhatsapp size={32} />
+            </a>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="end" className="bg-primary text-primary-foreground">
+            <p>Alguma dúvida? Chama a gente no zap!</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
     </div>
   );
 }

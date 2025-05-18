@@ -14,7 +14,7 @@ export async function connectToDatabase() {
   }
   const client = new MongoClient(uri);
   await client.connect();
-  const db = client.db("vaguinhas-emails");
+  const db = client.db("vaguinhas");
   cachedClient = client;
   cachedDb = db;
   return { client, db };
