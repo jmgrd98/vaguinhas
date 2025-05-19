@@ -66,10 +66,10 @@ export async function POST(request: Request) {
           </table>
           <h1 style="color: #ff914d; font-size: 24px; margin-top: 0">Obrigado por se cadastrar!</h1>
           <p style="font-size: 16px; line-height: 1.5;">
-            Você receberá vaguinhas de tecnologia nesse e-mail diariamente! 😊
+            Você receberá vaguinhas de tecnologia nesse e-mail diariamente. 😊
           </p>
           <p style="font-size: 16px; line-height: 1.5;">
-            Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" style="color: #ff914d; text-decoration: none;">LinkedIn</a> para levar uma ideia.
+            Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" style="color: #ff914d; text-decoration: none;">LinkedIn</a> para levar uma ideia!
           </p>
           <p style="font-size: 16px; line-height: 1.5;">
             Caso não tenha sido você, por favor ignore este e-mail.
