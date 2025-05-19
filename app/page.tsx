@@ -10,7 +10,7 @@ import {
   AlertTitle,
   AlertDescription,
 } from "@/components/ui/alert";
-import { z } from "zod";
+import { set, z } from "zod";
 import { FaWhatsapp } from "react-icons/fa";
 import {
   Tooltip,
@@ -18,19 +18,19 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-// import {
-//   Select,
-//   SelectTrigger,
-//   SelectValue,
-//   SelectContent,
-//   SelectItem,
-// } from "@/components/ui/select";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
 export default function Home() {
   const [email, setEmail] = useState("");
-  // const [seniorityLevel, setSeniorityLevel] = useState("");
+  const [seniorityLevel, setSeniorityLevel] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -59,13 +59,17 @@ export default function Home() {
     if (!validateEmail()) return;
     
     setStatus("loading");
+
+    const mappedSeniority = seniorityLevel === "junior" 
+        ? ["Entry level", "Internship"]
+        : ["Mid-Senior level", "Associate"];
     try {
       const res = await fetch("/api/save-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           email,
-          // seniorityLevel
+          seniorityLevel: mappedSeniority
          }),
       });
       
@@ -73,6 +77,7 @@ export default function Home() {
       
       setStatus("success");
       setEmail("");
+      setSeniorityLevel("");
     } catch (err) {
       console.error(err);
       setStatus("error");
@@ -102,7 +107,7 @@ export default function Home() {
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
           />
-         {/* <Select 
+         <Select 
             value={seniorityLevel}
             onValueChange={setSeniorityLevel}
             required
@@ -115,7 +120,7 @@ export default function Home() {
               <SelectItem value="mid-level">Pleno</SelectItem>
               <SelectItem value="senior">Sênior</SelectItem>
             </SelectContent>
-          </Select> */}
+          </Select>
           <Button
             className="w-full cursor-pointer hover:scale-105"
             variant="default"
@@ -136,9 +141,9 @@ export default function Home() {
           )}
           {status === "success" && (
             <Alert className="w-full">
-              <AlertTitle>Sucesso!</AlertTitle>
+              <AlertTitle>Cadastro feito!</AlertTitle>
               <AlertDescription>
-                E-mail salvo com sucesso!
+                Você começará a receber vaguinhas diariamente no e-mail cadastrado.
               </AlertDescription>
             </Alert>
           )}

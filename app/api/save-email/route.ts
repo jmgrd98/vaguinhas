@@ -15,11 +15,17 @@ const LOGO_BASE64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAfQAAAH0CAYAA
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 
+const requestSchema = z.object({
+  email: emailSchema,
+  seniorityLevel: z.array(z.string())
+});
+
+
 export async function POST(request: Request) {
   try {
-    const { email } = await request.json();
+    const requestData = await request.json();
 
-    const validation = emailSchema.safeParse(email);
+    const validation = requestSchema.safeParse(requestData);
     if (!validation.success) {
       return NextResponse.json(
         { message: "E-mail inválido", errors: validation.error.errors },
@@ -27,7 +33,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const normalizedEmail = validation.data;
+    const { email: normalizedEmail, seniorityLevel } = validation.data;
 
     const { db } = await connectToDatabase();
 
@@ -41,7 +47,7 @@ export async function POST(request: Request) {
 
     await db.collection("users").insertOne({
       email: normalizedEmail,
-      seniorityLevel: "junior",
+      seniorityLevel,
       stacks: [],
       createdAt: new Date(),
     });
