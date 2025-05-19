@@ -10,7 +10,7 @@ import {
   AlertTitle,
   AlertDescription,
 } from "@/components/ui/alert";
-import { set, z } from "zod";
+import { z } from "zod";
 import { FaWhatsapp } from "react-icons/fa";
 import {
   Tooltip,
