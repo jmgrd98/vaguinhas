@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vaguinhas",
+  title: "vaguinhas",
   description: "Receba vagas de tecnologia diariamente no seu e-mail.",
   icons: {
     icon: '/favicon.ico'
