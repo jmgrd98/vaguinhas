@@ -38,6 +38,29 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const [cooldown, setCooldown] = useState(0);
+  const [canResend, setCanResend] = useState(true);
+
+  // Add cooldown timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (cooldown > 0) {
+      interval = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [cooldown]);
+
   const validateEmail = () => {
     try {
       emailSchema.parse(email);
@@ -70,10 +93,16 @@ export default function Home() {
         body: JSON.stringify({ 
           email,
           seniorityLevel: mappedSeniority
-         }),
+        }),
       });
       
       if (!res.ok) throw new Error(await res.text());
+      
+      localStorage.setItem('confirmationEmail', email);
+      // Set initial cooldown
+      localStorage.setItem('lastResend', Date.now().toString());
+      setCooldown(60);
+      setCanResend(false);
       
       setStatus("success");
       setEmail("");
@@ -81,6 +110,40 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       setStatus("error");
+    }
+  };
+
+  const resendConfirmation = async () => {
+    try {
+      const now = Date.now();
+      const lastResend = localStorage.getItem('lastResend');
+      
+      if (lastResend && now - Number(lastResend) < 60000) {
+        alert("Aguarde 1 minuto antes de reenviar");
+        return;
+      }
+
+      const email = localStorage.getItem('confirmationEmail');
+      if (!email) {
+        alert("Nenhum e-mail encontrado para reenvio");
+        return;
+      }
+
+      const res = await fetch("/api/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      
+      if (!res.ok) throw new Error();
+      
+      // Update cooldown
+      localStorage.setItem('lastResend', Date.now().toString());
+      setCooldown(60);
+      setCanResend(false);
+      alert("E-mail de confirmação reenviado!");
+    } catch (error) {
+      alert("Erro ao reenviar e-mail de confirmação");
     }
   };
 
@@ -143,7 +206,18 @@ export default function Home() {
             <Alert className="w-full">
               <AlertTitle>Cadastro feito!</AlertTitle>
               <AlertDescription>
-                Você começará a receber vaguinhas diariamente no e-mail cadastrado.
+                Enviamos um link de confirmação para seu e-mail.
+                <button 
+                  onClick={resendConfirmation}
+                  className={`text-blue-500 hover:underline ml-1 ${
+                    !canResend ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                  disabled={!canResend}
+                >
+                  {cooldown > 0 
+                    ? `Reenviar em ${cooldown}s` 
+                    : 'Reenviar confirmação'}
+                </button>
               </AlertDescription>
             </Alert>
           )}
