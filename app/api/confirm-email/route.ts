@@ -26,6 +26,13 @@ export async function GET(request: Request) {
       );
     }
 
+    if (user.confirmed) {
+      return NextResponse.json(
+        { message: "Esse e-mail já está confirmado." },
+        { status: 409 }
+      );
+    }
+
     await db.collection("users").updateOne(
       { _id: user._id },
       {

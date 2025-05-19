@@ -25,7 +25,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate new token
+    if (user.confirmed) {
+      return NextResponse.json(
+        { message: "Esse e-mail já está confirmado" },
+        { status: 409 }
+      );
+    }
+
     const confirmationToken = randomBytes(32).toString('hex');
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 

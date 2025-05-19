@@ -25,6 +25,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -41,7 +42,6 @@ export default function Home() {
   const [cooldown, setCooldown] = useState(0);
   const [canResend, setCanResend] = useState(true);
 
-  // Add cooldown timer effect
   useEffect(() => {
     let interval: NodeJS.Timeout;
     
@@ -95,11 +95,14 @@ export default function Home() {
           seniorityLevel: mappedSeniority
         }),
       });
-      
-      if (!res.ok) throw new Error(await res.text());
+
+      if (res.status === 409) {
+        toast.warning("Esse e-mail já está cadastrado!", { description: "Obrigado, seu e-mail já foi validado." });
+        setStatus("error");
+        return;
+      }
       
       localStorage.setItem('confirmationEmail', email);
-      // Set initial cooldown
       localStorage.setItem('lastResend', Date.now().toString());
       setCooldown(60);
       setCanResend(false);
@@ -113,37 +116,44 @@ export default function Home() {
     }
   };
 
-  const resendConfirmation = async () => {
+ const resendConfirmation = async () => {
     try {
       const now = Date.now();
-      const lastResend = localStorage.getItem('lastResend');
-      
+      const lastResend = localStorage.getItem("lastResend");
+
       if (lastResend && now - Number(lastResend) < 60000) {
-        alert("Aguarde 1 minuto antes de reenviar");
+        toast.warning("Aguarde 1 minuto para reenviar o e-mail de confirmação");
         return;
       }
 
-      const email = localStorage.getItem('confirmationEmail');
-      if (!email) {
-        alert("Nenhum e-mail encontrado para reenvio");
+      const savedEmail = localStorage.getItem("confirmationEmail");
+      if (!savedEmail) {
+        toast.warning("Nenhum e-mail encontrado para reenvio");
         return;
       }
 
       const res = await fetch("/api/resend-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: savedEmail }),
       });
-      
-      if (!res.ok) throw new Error();
-      
-      // Update cooldown
-      localStorage.setItem('lastResend', Date.now().toString());
+
+      if (res.status === 409) {
+        toast.warning("Esse e-mail já está confirmado!", { description: "Obrigado, seu e-mail já foi validado." });
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
+      localStorage.setItem("lastResend", now.toString());
       setCooldown(60);
       setCanResend(false);
-      alert("E-mail de confirmação reenviado!");
-    } catch (error) {
-      alert("Erro ao reenviar e-mail de confirmação");
+
+      toast.success("E-mail de confirmação reenviado!");
+    } catch {
+      toast.error("Erro ao reenviar e-mail de confirmação");
     }
   };
 
@@ -209,8 +219,8 @@ export default function Home() {
                 Enviamos um link de confirmação para seu e-mail.
                 <button 
                   onClick={resendConfirmation}
-                  className={`text-blue-500 hover:underline ml-1 ${
-                    !canResend ? 'opacity-50 cursor-not-allowed' : ''
+                  className={`text-blue-500 ml-1 ${
+                    !canResend ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:underline'
                   }`}
                   disabled={!canResend}
                 >
