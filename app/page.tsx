@@ -25,6 +25,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -37,6 +38,28 @@ export default function Home() {
 
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const [cooldown, setCooldown] = useState(0);
+  const [canResend, setCanResend] = useState(true);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (cooldown > 0) {
+      interval = setInterval(() => {
+        setCooldown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   const validateEmail = () => {
     try {
@@ -70,10 +93,19 @@ export default function Home() {
         body: JSON.stringify({ 
           email,
           seniorityLevel: mappedSeniority
-         }),
+        }),
       });
+
+      if (res.status === 409) {
+        toast.warning("Esse e-mail já está cadastrado!", { description: "Obrigado, seu e-mail já foi validado." });
+        setStatus("error");
+        return;
+      }
       
-      if (!res.ok) throw new Error(await res.text());
+      localStorage.setItem('confirmationEmail', email);
+      localStorage.setItem('lastResend', Date.now().toString());
+      setCooldown(60);
+      setCanResend(false);
       
       setStatus("success");
       setEmail("");
@@ -81,6 +113,47 @@ export default function Home() {
     } catch (err) {
       console.error(err);
       setStatus("error");
+    }
+  };
+
+ const resendConfirmation = async () => {
+    try {
+      const now = Date.now();
+      const lastResend = localStorage.getItem("lastResend");
+
+      if (lastResend && now - Number(lastResend) < 60000) {
+        toast.warning("Aguarde 1 minuto para reenviar o e-mail de confirmação");
+        return;
+      }
+
+      const savedEmail = localStorage.getItem("confirmationEmail");
+      if (!savedEmail) {
+        toast.warning("Nenhum e-mail encontrado para reenvio");
+        return;
+      }
+
+      const res = await fetch("/api/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: savedEmail }),
+      });
+
+      if (res.status === 409) {
+        toast.warning("Esse e-mail já está confirmado!", { description: "Obrigado, seu e-mail já foi validado." });
+        return;
+      }
+
+      if (!res.ok) {
+        throw new Error();
+      }
+
+      localStorage.setItem("lastResend", now.toString());
+      setCooldown(60);
+      setCanResend(false);
+
+      toast.success("E-mail de confirmação reenviado!");
+    } catch {
+      toast.error("Erro ao reenviar e-mail de confirmação");
     }
   };
 
@@ -143,7 +216,18 @@ export default function Home() {
             <Alert className="w-full">
               <AlertTitle>Cadastro feito!</AlertTitle>
               <AlertDescription>
-                Você começará a receber vaguinhas diariamente no e-mail cadastrado.
+                Enviamos um link de confirmação para seu e-mail.
+                <button 
+                  onClick={resendConfirmation}
+                  className={`text-blue-500 ml-1 ${
+                    !canResend ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:underline'
+                  }`}
+                  disabled={!canResend}
+                >
+                  {cooldown > 0 
+                    ? `Reenviar em ${cooldown}s` 
+                    : 'Reenviar confirmação'}
+                </button>
               </AlertDescription>
             </Alert>
           )}

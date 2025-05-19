@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { createTransport } from "nodemailer";
 import { z } from "zod";
+import { randomBytes } from "crypto";
 
 const transporter = createTransport({
   service: process.env.EMAIL_SERVICE,
@@ -45,12 +46,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const confirmationToken = randomBytes(32).toString('hex');
+    const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
       stacks: [],
       createdAt: new Date(),
+      confirmed: false,
+      confirmationToken,
+      confirmationExpires
     });
+
+    const confirmationLink = `${process.env.NEXTAUTH_URL}/confirm-email?token=${confirmationToken}`;
 
     const mailOptions = {
       from: `vaguinhas <${process.env.EMAIL_FROM}>`,
@@ -73,6 +82,12 @@ export async function POST(request: Request) {
           <h1 style="color: #ff914d; font-size: 24px; margin-top: 0">Obrigado por se cadastrar!</h1>
           <p style="font-size: 16px; line-height: 1.5;">
             Você receberá vaguinhas de tecnologia nesse e-mail diariamente. 😊
+          </p>
+          <p style="font-size: 16px; line-height: 1.5;">
+            Por favor confirme seu e-mail clicando no link abaixo:<br>
+            <a href="${confirmationLink}" style="color: #ff914d; text-decoration: none;">
+              Confirmar endereço de e-mail
+            </a>
           </p>
           <p style="font-size: 16px; line-height: 1.5;">
             Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" style="color: #ff914d; text-decoration: none;">LinkedIn</a> para levar uma ideia!
