@@ -1,6 +1,7 @@
 import { createTransport } from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
+import { randomBytes } from 'crypto';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO
 
@@ -70,5 +71,5 @@ export async function sendAdminNotification(email: string) {
 }
 
 export function generateConfirmationToken() {
-  return require('crypto').randomBytes(32).toString('hex');
+  return randomBytes(32).toString('hex');
 }
