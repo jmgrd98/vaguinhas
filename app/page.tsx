@@ -11,7 +11,7 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp } from "react-icons/fa";
+import { FaWhatsapp, FaGithub } from "react-icons/fa";
 import {
   Tooltip,
   TooltipContent,
@@ -26,6 +26,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import Link from "next/link";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -159,7 +160,17 @@ export default function Home() {
 
 
   return (
-    <div className="min-h-screen w-full flex flex-col">
+    <div className="min-h-screen w-full flex flex-col relative">
+      <Link
+        href="https://github.com/jmgrd98/vaguinhas"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="absolute top-4 right-4 z-50 flex items-center gap-2 justify-center text-black dark:text-white hover:text-blue-500 transition-colors"
+      >
+        <p>Favorite-nos no Github!</p>
+        <FaGithub size={28} />
+      </Link>
+
       <main className="flex-grow flex flex-col items-center px-4">
         <Image
           className="dark:invert"

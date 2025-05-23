@@ -1,15 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { createTransport } from 'nodemailer';
-import { randomBytes } from 'crypto';
-
-const transporter = createTransport({
-  service: process.env.EMAIL_SERVICE,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+import { sendConfirmationEmail, generateConfirmationToken } from '@/lib/email';
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +23,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const confirmationToken = randomBytes(32).toString('hex');
+    const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     await db.collection("users").updateOne(
@@ -45,26 +36,7 @@ export async function POST(request: Request) {
       }
     );
 
-    const baseUrl = process.env.NEXTAUTH_URL || 
-                   `${request.headers.get('x-forwarded-proto')}://${request.headers.get('host')}`;
-    
-    const confirmationLink = `${baseUrl}/confirm-email?token=${confirmationToken}`;
-
-    await transporter.sendMail({
-      from: `vaguinhas <${process.env.EMAIL_FROM}>`,
-      to: email,
-      subject: "Confirme seu e-mail - vaguinhas",
-      html: `
-        <div style="max-width: 600px; margin: 0 auto;">
-          <h1 style="color: #ff914d; font-size: 24px;">Confirmação de e-mail</h1>
-          <p>Clique no link abaixo para confirmar seu endereço de e-mail:</p>
-          <a href="${confirmationLink}" style="color: #ff914d; text-decoration: none;">
-            Confirmar e-mail
-          </a>
-          <p>Se você não solicitou este e-mail, por favor ignore.</p>
-        </div>
-      `
-    });
+    await sendConfirmationEmail(email, confirmationToken);
 
     return NextResponse.json(
       { message: "E-mail de confirmação reenviado" },
