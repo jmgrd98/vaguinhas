@@ -61,7 +61,7 @@ export async function sendAdminNotification(email: string) {
   });
 
   const mailOptions = {
-    from: `Vaguinhas <${process.env.EMAIL_FROM}>`,
+    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
     to: "jmgrd98@gmail.com",
     subject: "Novo cadastro no vaguinhas",
     html
