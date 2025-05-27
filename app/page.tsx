@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Image from "next/image";
-import logo from "@/public/vaguinhas.svg";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -171,14 +169,10 @@ export default function Home() {
         <FaGithub size={28} />
       </Link>
 
-      <main className="flex-grow flex flex-col items-center px-4">
-        <Image
-          className="dark:invert"
-          src={logo}
-          alt="vaguinhas logo"
-          width={440}
-          priority
-        />
+      <main className="flex-grow flex flex-col items-center px-4 justify-center gap-20">
+        <p className={`font-caprasimo caprasimo-regular text-8xl text-[#ff914d] font-bold`}>
+          vaguinhas
+        </p>
         <div className="flex flex-col gap-5 items-center">
           <p className="mb-2 text-xl font-bold text-center">
             Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada!

@@ -42,6 +42,17 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+.cooperbt-regular {
+  font-family: "Cooper BT", serif;
+  font-weight: 600;
+  font-style: normal;
+}
+
+.caprasimo-regular {
+  font-family: "Caprasimo", sans-serif;
+  font-weight: 400;
+  font-style: normal;
+}
 
 :root {
   --radius: 0.625rem;
