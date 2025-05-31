@@ -16,13 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
+// import {
+//   Select,
+//   SelectTrigger,
+//   SelectValue,
+//   SelectContent,
+//   SelectItem,
+// } from "@/components/ui/select";
 import { toast } from "sonner";
 import Link from "next/link";
 
@@ -185,7 +185,7 @@ export default function Home() {
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
           />
-         <Select 
+         {/* <Select 
             value={seniorityLevel}
             onValueChange={setSeniorityLevel}
             required
@@ -198,7 +198,7 @@ export default function Home() {
               <SelectItem value="mid-level">Pleno</SelectItem>
               <SelectItem value="senior">Sênior</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
           <Button
             className="w-full cursor-pointer hover:scale-105"
             variant="default"
