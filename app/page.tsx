@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import Link from "next/link";
-import Confetti from "react-confetti"; // Add confetti import
+import Confetti from "react-confetti";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -32,13 +32,12 @@ export default function Home() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [cooldown, setCooldown] = useState(0);
   const [canResend, setCanResend] = useState(true);
-  const [showConfetti, setShowConfetti] = useState(false); // Confetti state
-  const [windowSize, setWindowSize] = useState({ // For confetti dimensions
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [windowSize, setWindowSize] = useState({
     width: typeof window !== 'undefined' ? window.innerWidth : 0,
     height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
 
-  // Handle window resize for confetti
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
@@ -119,7 +118,7 @@ export default function Home() {
       setCanResend(false);
       
       setStatus("success");
-      setShowConfetti(true); // Trigger confetti
+      setShowConfetti(true);
       setEmail("");
       setSeniorityLevel("");
     } catch (err) {
@@ -128,7 +127,6 @@ export default function Home() {
     }
   };
 
-  // Add this effect to automatically hide confetti after 5 seconds
   useEffect(() => {
     if (showConfetti) {
       const timer = setTimeout(() => {
@@ -183,7 +181,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full flex flex-col relative">
-      {/* Confetti component */}
       {showConfetti && (
         <Confetti
           width={windowSize.width}
@@ -240,7 +237,7 @@ export default function Home() {
           )}
           {status === "success" && (
             <Alert className="w-full">
-              <AlertTitle>Cadastro feito!</AlertTitle>
+              <AlertTitle>Cadastro feito! ✅</AlertTitle>
               <AlertDescription>
                 Enviamos um link de confirmação para seu e-mail.
                 <button 
