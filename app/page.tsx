@@ -16,15 +16,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-// import {
-//   Select,
-//   SelectTrigger,
-//   SelectValue,
-//   SelectContent,
-//   SelectItem,
-// } from "@/components/ui/select";
 import { toast } from "sonner";
 import Link from "next/link";
+import Confetti from "react-confetti"; // Add confetti import
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -34,12 +28,30 @@ export default function Home() {
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
-
   const [validationError, setValidationError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
   const [cooldown, setCooldown] = useState(0);
   const [canResend, setCanResend] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false); // Confetti state
+  const [windowSize, setWindowSize] = useState({ // For confetti dimensions
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
+  });
+
+  // Handle window resize for confetti
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const handleResize = () => {
+      setWindowSize({
+        width: window.innerWidth,
+        height: window.innerHeight,
+      });
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -107,6 +119,7 @@ export default function Home() {
       setCanResend(false);
       
       setStatus("success");
+      setShowConfetti(true); // Trigger confetti
       setEmail("");
       setSeniorityLevel("");
     } catch (err) {
@@ -115,7 +128,18 @@ export default function Home() {
     }
   };
 
- const resendConfirmation = async () => {
+  // Add this effect to automatically hide confetti after 5 seconds
+  useEffect(() => {
+    if (showConfetti) {
+      const timer = setTimeout(() => {
+        setShowConfetti(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [showConfetti]);
+
+  const resendConfirmation = async () => {
     try {
       const now = Date.now();
       const lastResend = localStorage.getItem("lastResend");
@@ -159,6 +183,17 @@ export default function Home() {
 
   return (
     <div className="min-h-screen w-full flex flex-col relative">
+      {/* Confetti component */}
+      {showConfetti && (
+        <Confetti
+          width={windowSize.width}
+          height={windowSize.height}
+          recycle={false}
+          numberOfPieces={500}
+          gravity={0.1}
+        />
+      )}
+      
       <Link
         href="https://github.com/jmgrd98/vaguinhas"
         target="_blank"
@@ -175,7 +210,7 @@ export default function Home() {
         </p>
         <div className="flex flex-col gap-5 items-center">
           <p className="mb-2 text-xl font-bold text-center">
-            Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada!
+            Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
           </p>
           <Input
             ref={inputRef}
@@ -185,20 +220,6 @@ export default function Home() {
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
           />
-         {/* <Select 
-            value={seniorityLevel}
-            onValueChange={setSeniorityLevel}
-            required
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione seu nível profissional" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="junior">Júnior</SelectItem>
-              <SelectItem value="mid-level">Pleno</SelectItem>
-              <SelectItem value="senior">Sênior</SelectItem>
-            </SelectContent>
-          </Select> */}
           <Button
             className="w-full cursor-pointer hover:scale-105"
             variant="default"
