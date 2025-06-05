@@ -3,7 +3,16 @@ import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
 
-export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO
+export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
+
+export interface Job {
+  title: string;
+  company: string;
+  location?: string;
+  url: string;
+  source?: string;
+  seniority?: string[];
+}
 
 const transporter = createTransport({
   service: process.env.EMAIL_SERVICE,
@@ -22,6 +31,70 @@ async function loadTemplate(templateName: string, replacements: Record<string, s
   });
   
   return content;
+}
+
+// NEW: Format job listings into HTML
+function formatJobs(jobs: Job[]): string {
+  if (jobs.length === 0) {
+    return `
+      <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+        <p style="margin: 0;">Não encontramos vagas novas hoje. Verificaremos novamente amanhã!</p>
+      </div>
+    `;
+  }
+
+  return jobs.map(job => `
+    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ff914d;">
+      <h3 style="margin: 0 0 10px 0;">
+        <a href="${job.url}" style="color: #ff914d; text-decoration: none;">${job.title}</a>
+      </h3>
+      <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
+        <div>
+          <strong>Empresa:</strong> ${job.company}
+        </div>
+        <div>
+          <strong>Local:</strong> ${job.location}
+        </div>
+        <div>
+          <strong>Nível:</strong> ${job.seniority!.join(', ')}
+        </div>
+      </div>
+      <div>
+        <strong>Fonte:</strong> ${job.source}
+      </div>
+    </div>
+  `).join('');
+}
+
+// NEW: Send daily digest email
+export async function sendDailyEmail(email: string, jobs: Job[], unsubscribeToken: string) {
+  const baseUrl = process.env.NEXTAUTH_URL;
+  const unsubscribeLink = `${baseUrl}/unsubscribe?token=${unsubscribeToken}`;
+  
+  const html = await loadTemplate('daily-jobs', {
+    JOBS_LIST: formatJobs(jobs),
+    UNSUBSCRIBE_LINK: unsubscribeLink,
+    CURRENT_YEAR: new Date().getFullYear().toString()
+  });
+
+  if (!LOGO_BASE64) {
+    throw new Error('VAGUINHAS_LOGO is not defined');
+  }
+
+  const mailOptions = {
+    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Vaguinhas do dia!",
+    html,
+    attachments: [{
+      filename: 'vaguinhas.png',
+      content: LOGO_BASE64.split('base64,')[1],
+      encoding: 'base64',
+      cid: 'logo@vaguinhas'
+    }]
+  };
+
+  return transporter.sendMail(mailOptions);
 }
 
 export async function sendConfirmationEmail(email: string, token: string) {
@@ -71,4 +144,31 @@ export async function sendAdminNotification(email: string) {
 
 export function generateConfirmationToken() {
   return randomBytes(32).toString('hex');
+}
+
+export async function sendSupportUsEmail(email: string) {
+  const html = await loadTemplate("support-us", {
+    CURRENT_YEAR: new Date().getFullYear().toString(),
+  });
+
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Nos ajude a continuar – apoie a Vaguinhas",
+    html,
+    attachments: [
+      {
+        filename: "vaguinhas.png",
+        content: LOGO_BASE64.split("base64,")[1],
+        encoding: "base64",
+        cid: "logo@vaguinhas",
+      },
+    ],
+  };
+
+  return transporter.sendMail(mailOptions);
 }

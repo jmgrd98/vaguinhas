@@ -41,11 +41,10 @@ export default function Home() {
   const [canResend, setCanResend] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [windowSize, setWindowSize] = useState({
-    width: typeof window !== "undefined" ? window.innerWidth : 0,
-    height: typeof window !== "undefined" ? window.innerHeight : 0,
+    width: typeof window !== 'undefined' ? window.innerWidth : 0,
+    height: typeof window !== 'undefined' ? window.innerHeight : 0,
   });
 
-  // Handle window resize for confetti
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -288,13 +287,11 @@ export default function Home() {
             </Alert>
           )}
           {status === "success" && (
-            <Alert className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
-              <AlertTitle>Cadastro feito!</AlertTitle>
-              <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-                <span>
-                  Enviamos um link de confirmação para seu e-mail.
-                </span>
-                <button
+            <Alert className="w-full">
+              <AlertTitle>Cadastro feito! ✅</AlertTitle>
+              <AlertDescription>
+                Enviamos um link de confirmação para seu e-mail.
+                <button 
                   onClick={resendConfirmation}
                   className={`text-blue-500 ml-0 sm:ml-1 ${
                     !canResend
