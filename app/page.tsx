@@ -105,17 +105,21 @@ export default function Home() {
           seniorityLevel: mappedSeniority
         }),
       });
-
+      console.log('RES', res);
       if (res.status === 409) {
         toast.warning("Esse e-mail já está cadastrado!", { description: "Obrigado, seu e-mail já foi validado." });
         setStatus("error");
         return;
       }
+
+      console.log('STATUS', res.status);
+
       
       localStorage.setItem('confirmationEmail', email);
       localStorage.setItem('lastResend', Date.now().toString());
       setCooldown(60);
       setCanResend(false);
+      
       
       setStatus("success");
       setShowConfetti(true);
