@@ -72,7 +72,12 @@ export default function ConfirmEmailClient() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center px-4">
+      <p
+        className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center mb-10`}
+      >
+        vaguinhas
+      </p>
       <div className="max-w-md w-full">
         <Alert variant={success ? 'default' : 'destructive'} className="text-center">
           {success ? (

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    await db.collection("users").insertOne({
+    const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
       stacks: [],
@@ -46,9 +46,16 @@ export async function POST(request: Request) {
       confirmationToken,
       confirmationExpires
     });
+    console.log("User inserted:", insertResult);
+    try {
+      await sendConfirmationEmail(normalizedEmail, confirmationToken);
+    } catch (error) {
+      await db.collection("users").deleteOne({ _id: insertResult.insertedId });
+      console.error("Error sending confirmation email:", error);
+      throw new Error("Failed to send confirmation email");
+    }
 
-    await sendConfirmationEmail(normalizedEmail, confirmationToken);
-    await sendAdminNotification(normalizedEmail);
+    await sendAdminNotification(normalizedEmail).catch(console.error);
 
     return NextResponse.json({ message: "E-mail salvo e confirmação enviada" }, { status: 201 });
   } catch (error) {
