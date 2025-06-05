@@ -11,9 +11,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build:worker": "node scripts/build-worker.js",
+    "build:worker": "tsc -p tsconfig.worker.json",
     "start:worker": "node dist-workers/workers/index.js",
-    "dev:worker": "npm run build:worker && npm run start:worker",
     "dev:worker:ts": "node --loader ts-node/esm workers/runWorker.mts",
     "dev:cron": "ts-node workers/cron.ts"
   },

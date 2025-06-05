@@ -8,8 +8,9 @@
     "baseUrl": ".",
     "types": ["node"],
     "skipLibCheck": true,
-    "noEmit": false, // Ensure this is false
-    "composite": false // Disable composite builds
+    "noEmit": false,
+    "composite": false,
+    "moduleResolution": "nodenext",
   },
   "include": [
     "workers/**/*",

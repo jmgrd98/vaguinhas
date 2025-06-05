@@ -1,4 +1,4 @@
-import { emailQueue } from '../lib/queue.mjs';
+import { emailQueue } from '../lib/queue';
 import { sendSupportUsEmail } from '../lib/email.js';
 
 console.log('🚀 Email worker started and listening for jobs...');

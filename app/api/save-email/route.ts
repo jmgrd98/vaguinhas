@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server.js";
-import { connectToDatabase } from "../../../lib/mongodb.ts";
+import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
 import { 
   sendConfirmationEmail, 
   sendAdminNotification, 
   generateConfirmationToken 
-} from "../../../lib/email.ts";
-import { emailQueue } from "../../../lib/queue.mts"; // Update import
+} from "@/lib/email";
+import { emailQueue } from "@/lib/queue"; // Update import
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 

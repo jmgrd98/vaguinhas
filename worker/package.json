@@ -1,0 +1,12 @@
+{
+  "name": "vaguinhas-worker",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node ../dist-workers/workers/index.js"
+  },
+  "dependencies": {
+    "bull": "^4.12.5",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.13"
+  }
+}

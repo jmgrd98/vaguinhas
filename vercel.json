@@ -1,0 +1,43 @@
+{
+  "version": 2,
+  "public": true,
+  "cleanUrls": true,
+  "crons": [
+    {
+      "path": "/api/worker",
+      "schedule": "*/5 * * * *",
+      "timezone": "America/Sao_Paulo"
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Credentials", "value": "true" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,OPTIONS,PATCH,DELETE,POST,PUT" },
+        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
+      ]
+    }
+  ],
+  "env": {
+    "NEXTAUTH_URL": {
+      "production": "https://vaguinhas.com.br"
+    },
+    "REDIS_URL": {
+      "production": "@redis_url_prod"
+    },
+    "EMAIL_USER": {
+      "production": "@email_user_prod"
+    },
+    "EMAIL_PASSWORD": {
+      "production": "@email_password_prod"
+    }
+  }
+}

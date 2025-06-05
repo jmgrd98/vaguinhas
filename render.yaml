@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: vaguinhas-worker
+    env: node
+    region: ohio
+    branch: main
+    buildCommand: npm install && npm run build:worker
+    startCommand: npm run start:worker
+    healthCheckPath: /health
+    envVars:
+      - key: REDIS_URL
+        value: your-redis-url
+      - key: EMAIL_USER
+        value: your-email@domain.com
+      - key: EMAIL_PASSWORD
+        value: your-email-password
+      - key: NODE_ENV
+        value: production
+      - key: WORKER_PORT
+        fromDatabase: false
+        value: $PORT
