@@ -2,11 +2,20 @@
   "name": "vaguinhas",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
+  "ts-node": {
+    "esm": true
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:worker": "node scripts/build-worker.js",
+    "start:worker": "node dist-workers/workers/index.js",
+    "dev:worker": "npm run build:worker && npm run start:worker",
+    "dev:worker:ts": "node --loader ts-node/esm workers/runWorker.mts",
+    "dev:cron": "ts-node workers/cron.ts"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.10",
@@ -17,9 +26,10 @@
     "@radix-ui/react-switch": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.6",
     "@sendgrid/mail": "^8.1.5",
-    "agenda": "^5.0.0",
+    "bull": "^4.16.5",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "ioredis": "^5.6.1",
     "lucide-react": "^0.511.0",
     "mongodb": "^6.16.0",
     "next": "15.3.2",
@@ -38,14 +48,21 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/bull": "^4.10.4",
+    "@types/next": "^9.0.0",
+    "@types/node": "^20.17.57",
+    "@types/node-fetch": "^2.6.12",
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv": "^16.5.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "esm": "^3.2.25",
     "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "tw-animate-css": "^1.3.0",
-    "typescript": "^5"
+    "typescript": "^5.8.3"
   }
 }

@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "nodenext",
+    "esModuleInterop": true,
+    "outDir": "./dist-workers",
+    "rootDir": "./",
+    "baseUrl": ".",
+    "types": ["node"],
+    "skipLibCheck": true,
+    "noEmit": false, // Ensure this is false
+    "composite": false // Disable composite builds
+  },
+  "include": [
+    "workers/**/*",
+    "lib/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    "**/*.spec.ts",
+    "**/*.test.ts"
+  ]
+}
