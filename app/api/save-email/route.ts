@@ -1,7 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server.js";
 import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
-import { sendConfirmationEmail, sendAdminNotification, generateConfirmationToken } from '@/lib/email';
+import { 
+  sendConfirmationEmail, 
+  sendAdminNotification, 
+  generateConfirmationToken 
+} from "@/lib/email";
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 
@@ -46,9 +50,12 @@ export async function POST(request: Request) {
       confirmationToken,
       confirmationExpires
     });
-    console.log("User inserted:", insertResult);
+    
     try {
       await sendConfirmationEmail(normalizedEmail, confirmationToken);
+      
+
+      
     } catch (error) {
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });
       console.error("Error sending confirmation email:", error);
@@ -57,7 +64,10 @@ export async function POST(request: Request) {
 
     await sendAdminNotification(normalizedEmail).catch(console.error);
 
-    return NextResponse.json({ message: "E-mail salvo e confirmação enviada" }, { status: 201 });
+    return NextResponse.json({ 
+      message: "E-mail salvo e confirmação enviada. E-mail de suporte agendado para 2 minutos." 
+    }, { status: 201 });
+    
   } catch (error) {
     console.error("Error:", error);
     const errorMessage = error instanceof Error ? error.message : "Erro ao processar solicitação";

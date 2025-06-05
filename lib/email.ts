@@ -2,6 +2,7 @@ import { createTransport } from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
+// import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
 
@@ -22,6 +23,16 @@ const transporter = createTransport({
   },
 });
 
+const baseMailOptions = {
+  from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
+  attachments: [{
+      filename: 'vaguinhas.png',
+      content: LOGO_BASE64!.split('base64,')[1],
+      encoding: 'base64',
+      cid: 'logo@vaguinhas'
+    }],
+}
+
 async function loadTemplate(templateName: string, replacements: Record<string, string>) {
   const templatePath = path.join(process.cwd(), 'emails', `${templateName}.html`);
   let content = await fs.readFile(templatePath, 'utf-8');
@@ -31,70 +42,6 @@ async function loadTemplate(templateName: string, replacements: Record<string, s
   });
   
   return content;
-}
-
-// NEW: Format job listings into HTML
-function formatJobs(jobs: Job[]): string {
-  if (jobs.length === 0) {
-    return `
-      <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-        <p style="margin: 0;">Não encontramos vagas novas hoje. Verificaremos novamente amanhã!</p>
-      </div>
-    `;
-  }
-
-  return jobs.map(job => `
-    <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #ff914d;">
-      <h3 style="margin: 0 0 10px 0;">
-        <a href="${job.url}" style="color: #ff914d; text-decoration: none;">${job.title}</a>
-      </h3>
-      <div style="display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 10px;">
-        <div>
-          <strong>Empresa:</strong> ${job.company}
-        </div>
-        <div>
-          <strong>Local:</strong> ${job.location}
-        </div>
-        <div>
-          <strong>Nível:</strong> ${job.seniority!.join(', ')}
-        </div>
-      </div>
-      <div>
-        <strong>Fonte:</strong> ${job.source}
-      </div>
-    </div>
-  `).join('');
-}
-
-// NEW: Send daily digest email
-export async function sendDailyEmail(email: string, jobs: Job[], unsubscribeToken: string) {
-  const baseUrl = process.env.NEXTAUTH_URL;
-  const unsubscribeLink = `${baseUrl}/unsubscribe?token=${unsubscribeToken}`;
-  
-  const html = await loadTemplate('daily-jobs', {
-    JOBS_LIST: formatJobs(jobs),
-    UNSUBSCRIBE_LINK: unsubscribeLink,
-    CURRENT_YEAR: new Date().getFullYear().toString()
-  });
-
-  if (!LOGO_BASE64) {
-    throw new Error('VAGUINHAS_LOGO is not defined');
-  }
-
-  const mailOptions = {
-    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
-    to: email,
-    subject: "Vaguinhas do dia!",
-    html,
-    attachments: [{
-      filename: 'vaguinhas.png',
-      content: LOGO_BASE64.split('base64,')[1],
-      encoding: 'base64',
-      cid: 'logo@vaguinhas'
-    }]
-  };
-
-  return transporter.sendMail(mailOptions);
 }
 
 export async function sendConfirmationEmail(email: string, token: string) {
@@ -111,16 +58,10 @@ export async function sendConfirmationEmail(email: string, token: string) {
   }
 
   const mailOptions = {
-    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
+    ...baseMailOptions,
     to: email,
     subject: "Confirme seu e-mail para começar a receber vaguinhas 🧡",
     html,
-    attachments: [{
-      filename: 'vaguinhas.png',
-      content: LOGO_BASE64.split('base64,')[1],
-      encoding: 'base64',
-      cid: 'logo@vaguinhas'
-    }]
   };
 
   return transporter.sendMail(mailOptions);
@@ -133,7 +74,7 @@ export async function sendAdminNotification(email: string) {
   });
 
   const mailOptions = {
-    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
+    ...baseMailOptions,
     to: "jmgrd98@gmail.com",
     subject: "Novo cadastro no vaguinhas",
     html
@@ -155,19 +96,24 @@ export async function sendSupportUsEmail(email: string) {
     throw new Error("VAGUINHAS_LOGO is not defined");
   }
 
+  const qrCodePath = path.join(process.cwd(), 'public', 'qrcode-pix.png');
+  const qrCodeBuffer = await fs.readFile(qrCodePath);
+  const qrCodeBase64 = qrCodeBuffer.toString('base64');
+
   const mailOptions = {
-    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    ...baseMailOptions,
     to: email,
-    subject: "Nos ajude a continuar – apoie a Vaguinhas",
+    subject: "Nos ajude a continuar a enviar vaguinhas 🧡",
     html,
     attachments: [
+      ...baseMailOptions.attachments,
       {
-        filename: "vaguinhas.png",
-        content: LOGO_BASE64.split("base64,")[1],
-        encoding: "base64",
-        cid: "logo@vaguinhas",
-      },
-    ],
+        filename: 'pixqrcode.png',
+        content: qrCodeBase64,
+        encoding: 'base64',
+        cid: 'pixqrcode@vaguinhas'
+      }
+    ]
   };
 
   return transporter.sendMail(mailOptions);
