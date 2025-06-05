@@ -41,7 +41,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
   const mailOptions = {
     from: `vaguinhas <${process.env.EMAIL_FROM}>`,
     to: email,
-    subject: "Confirme seu e-mail - vaguinhas",
+    subject: "Confirme seu e-mail para começar a receber vaguinhas 🧡",
     html,
     attachments: [{
       filename: 'vaguinhas.png',
