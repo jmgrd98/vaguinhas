@@ -191,7 +191,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col relative">
+    <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {showConfetti && (
         <Confetti
           width={windowSize.width}
@@ -206,20 +206,20 @@ export default function Home() {
         href="https://github.com/jmgrd98/vaguinhas"
         target="_blank"
         rel="noopener noreferrer"
-        className="absolute top-4 right-4 z-50 flex items-center gap-2 justify-center text-black dark:text-white hover:text-blue-500 transition-colors"
+        className="absolute top-4 right-4 z-50 flex items-center gap-2 text-sm sm:text-base text-black dark:text-white hover:text-blue-500 transition-colors"
       >
-        <p>Favorite-nos no Github!</p>
-        <FaGithub size={28} />
+        <p className="hidden xs:block">Favorite-nos no Github!</p>
+        <FaGithub size={20} className="sm:size-[24]" />
       </Link>
 
-      <main className="flex-grow flex flex-col items-center px-4 justify-center gap-20">
+      <main className="flex-grow flex flex-col items-center justify-center">
         <p
-          className={`font-caprasimo caprasimo-regular text-8xl text-[#ff914d] font-bold`}
+          className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}
         >
           vaguinhas
         </p>
-        <div className="flex flex-col gap-5 items-center w-full max-w-[1200px]">
-          <p className="mb-2 text-xl font-bold text-center">
+        <div className="flex flex-col gap-5   items-center w-full max-w-[1200px] mt-8 ">
+          <p className="mb-2 text-lg sm:text-xl font-bold text-center">
             Insira seu e-mail para receber vaguinhas em tecnologia todos os
             dias na sua caixa de entrada! 😊
           </p>
@@ -231,9 +231,10 @@ export default function Home() {
             required
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
+            className="w-full"
           />
 
-          <Select 
+          <Select
             value={seniorityLevel}
             onValueChange={setSeniorityLevel}
             required
@@ -249,7 +250,7 @@ export default function Home() {
           </Select>
 
           <Button
-            className="w-full cursor-pointer hover:scale-105"
+            className="w-full max-w-md sm:max-w-lg lg:max-w-xl py-3 sm:py-4 hover:scale-105 transition-transform"
             variant="default"
             size="lg"
             onClick={saveEmail}
@@ -264,19 +265,21 @@ export default function Home() {
           </Button>
 
           {status === "error" && (
-            <Alert variant="destructive" className="w-full">
+            <Alert variant="destructive" className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
               <AlertTitle>Erro!</AlertTitle>
               <AlertDescription>Falha ao salvar. Tente novamente.</AlertDescription>
             </Alert>
           )}
           {status === "success" && (
-            <Alert className="w-full">
+            <Alert className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
               <AlertTitle>Cadastro feito!</AlertTitle>
-              <AlertDescription>
-                Enviamos um link de confirmação para seu e-mail.
+              <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <span>
+                  Enviamos um link de confirmação para seu e-mail.
+                </span>
                 <button
                   onClick={resendConfirmation}
-                  className={`text-blue-500 ml-1 ${
+                  className={`text-blue-500 ml-0 sm:ml-1 ${
                     !canResend
                       ? "opacity-50 cursor-not-allowed"
                       : "cursor-pointer hover:underline"
@@ -293,9 +296,9 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="py-4 w-full text-center border-t">
+      <footer className="py-4 sm:py-6 w-full text-center border-t border-gray-200 dark:border-gray-700">
         <a
-          className="hover:text-blue-500"
+          className="text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors"
           href="https://github.com/jmgrd98"
           target="_blank"
           rel="noopener noreferrer"
@@ -311,9 +314,9 @@ export default function Home() {
               href="https://wa.me/5561996386998"
               target="_blank"
               rel="noopener noreferrer"
-              className="fixed bottom-4 right-4 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"
+              className="fixed bottom-4 right-4 z-50 bg-green-500 text-white p-3 sm:p-4 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"
             >
-              <FaWhatsapp size={32} />
+              <FaWhatsapp size={28} />
             </a>
           </TooltipTrigger>
           <TooltipContent
