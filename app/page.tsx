@@ -19,13 +19,6 @@ import {
 import { toast } from "sonner";
 import Link from "next/link";
 import Confetti from "react-confetti";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -46,8 +39,8 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
+    if (typeof window === 'undefined') return;
+    
     const handleResize = () => {
       setWindowSize({
         width: window.innerWidth,
@@ -61,7 +54,7 @@ export default function Home() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-
+    
     if (cooldown > 0) {
       interval = setInterval(() => {
         setCooldown((prev) => {
@@ -97,60 +90,40 @@ export default function Home() {
 
   const saveEmail = async () => {
     if (!validateEmail()) return;
+    
     setStatus("loading");
 
-    const mappedSeniority =
-      seniorityLevel === "junior"
+    const mappedSeniority = seniorityLevel === "junior" 
         ? ["Entry level", "Internship"]
         : ["Mid-Senior level", "Associate"];
-
     try {
       const res = await fetch("/api/save-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        body: JSON.stringify({ 
           email,
-          seniorityLevel: mappedSeniority,
+          seniorityLevel: mappedSeniority
         }),
       });
 
-      if (res.status === 500) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || "Erro no servidor");
-      }
-
-      if (res.status === 201) {
-        localStorage.setItem("confirmationEmail", email);
-        localStorage.setItem("lastResend", Date.now().toString());
-        setCooldown(60);
-        setCanResend(false);
-        setStatus("success");
-        setShowConfetti(true);
-        setEmail("");
-        setSeniorityLevel("");
-      }
-
       if (res.status === 409) {
-        toast.warning("Esse e-mail já está cadastrado!", {
-          description: "Obrigado, seu e-mail já foi validado.",
-        });
+        toast.warning("Esse e-mail já está cadastrado!", { description: "Obrigado, seu e-mail já foi validado." });
         setStatus("error");
         return;
       }
-
-      localStorage.setItem("confirmationEmail", email);
-      localStorage.setItem("lastResend", Date.now().toString());
+      
+      localStorage.setItem('confirmationEmail', email);
+      localStorage.setItem('lastResend', Date.now().toString());
       setCooldown(60);
       setCanResend(false);
-
+      
       setStatus("success");
       setShowConfetti(true);
       setEmail("");
       setSeniorityLevel("");
-    } catch (err: unknown) {
+    } catch (err) {
       console.error(err);
       setStatus("error");
-      toast.error("Erro ao salvar e-mail");
     }
   };
 
@@ -159,6 +132,7 @@ export default function Home() {
       const timer = setTimeout(() => {
         setShowConfetti(false);
       }, 5000);
+      
       return () => clearTimeout(timer);
     }
   }, [showConfetti]);
@@ -186,9 +160,7 @@ export default function Home() {
       });
 
       if (res.status === 409) {
-        toast.warning("Esse e-mail já está confirmado!", {
-          description: "Obrigado, seu e-mail já foi validado.",
-        });
+        toast.warning("Esse e-mail já está confirmado!", { description: "Obrigado, seu e-mail já foi validado." });
         return;
       }
 
@@ -206,8 +178,10 @@ export default function Home() {
     }
   };
 
+
   return (
-    <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-screen w-full flex flex-col relative">
+      <TooltipProvider>
       {showConfetti && (
         <Confetti
           width={windowSize.width}
@@ -217,29 +191,33 @@ export default function Home() {
           gravity={0.1}
         />
       )}
+      
+      <div className="absolute top-4 right-4 z-50">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="https://github.com/jmgrd98/vaguinhas"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-black dark:text-white hover:text-blue-500 transition-colors"
+              >
+                <FaGithub size={24} />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="end" className="bg-primary text-primary-foreground">
+              <p>Favorite-nos no Github! ⭐</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
 
-      <Link
-        href="https://github.com/jmgrd98/vaguinhas"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="absolute top-4 right-4 z-50 flex items-center gap-2 text-sm sm:text-base text-black dark:text-white hover:text-blue-500 transition-colors"
-      >
-        <p className="hidden xs:block">Favorite-nos no Github!</p>
-        <FaGithub size={20} className="sm:size-[24]" />
-      </Link>
-
-      <main className="flex-grow flex flex-col items-center justify-center">
-        <p
-          className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}
-        >
+      <main className="flex-grow flex flex-col items-center px-4 justify-center gap-20">
+        <p className={`font-caprasimo caprasimo-regular text-8xl text-[#ff914d] font-bold`}>
           vaguinhas
         </p>
-        <div className="flex flex-col gap-5   items-center w-full max-w-[1200px] mt-8 ">
-          <p className="mb-2 text-lg sm:text-xl font-bold text-center">
-            Insira seu e-mail para receber vaguinhas em tecnologia todos os
-            dias na sua caixa de entrada! 😊
+        <div className="flex flex-col gap-5 items-center">
+          <p className="mb-2 text-xl font-bold text-center">
+            Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
           </p>
-
           <Input
             ref={inputRef}
             type="email"
@@ -247,43 +225,23 @@ export default function Home() {
             required
             value={email}
             onChange={(e) => setEmail(e.currentTarget.value)}
-            className="w-full"
           />
-
-          <Select
-            value={seniorityLevel}
-            onValueChange={setSeniorityLevel}
-            required
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Selecione seu nível profissional" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="junior">Júnior</SelectItem>
-              <SelectItem value="mid-level">Pleno</SelectItem>
-              <SelectItem value="senior">Sênior</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Button
-            className="w-full py-3 sm:py-4 hover:scale-105 transition-transform"
+            className="w-full cursor-pointer hover:scale-105"
             variant="default"
             size="lg"
             onClick={saveEmail}
-            disabled={
-              !email ||
-              !!validationError ||
-              status === "loading" ||
-              !seniorityLevel
-            }
+            disabled={!email || !!validationError || status === "loading"}
           >
             {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
           </Button>
 
           {status === "error" && (
-            <Alert variant="destructive" className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
+            <Alert variant="destructive" className="w-full">
               <AlertTitle>Erro!</AlertTitle>
-              <AlertDescription>Falha ao salvar. Tente novamente.</AlertDescription>
+              <AlertDescription>
+                Falha ao salvar. Tente novamente.
+              </AlertDescription>
             </Alert>
           )}
           {status === "success" && (
@@ -293,16 +251,14 @@ export default function Home() {
                 Enviamos um link de confirmação para seu e-mail.
                 <button 
                   onClick={resendConfirmation}
-                  className={`text-blue-500 ml-0 sm:ml-1 ${
-                    !canResend
-                      ? "opacity-50 cursor-not-allowed"
-                      : "cursor-pointer hover:underline"
+                  className={`text-blue-500 ml-1 ${
+                    !canResend ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:underline'
                   }`}
                   disabled={!canResend}
                 >
-                  {cooldown > 0
-                    ? `Reenviar em ${cooldown}s`
-                    : "Reenviar confirmação"}
+                  {cooldown > 0 
+                    ? `Reenviar em ${cooldown}s` 
+                    : 'Reenviar confirmação'}
                 </button>
               </AlertDescription>
             </Alert>
@@ -310,9 +266,9 @@ export default function Home() {
         </div>
       </main>
 
-      <footer className="py-4 sm:py-6 w-full text-center border-t border-gray-200 dark:border-gray-700">
+      <footer className="py-4 w-full text-center border-t">
         <a
-          className="text-sm sm:text-base text-gray-600 dark:text-gray-300 hover:text-blue-500 transition-colors"
+          className="hover:text-blue-500"
           href="https://github.com/jmgrd98"
           target="_blank"
           rel="noopener noreferrer"
@@ -321,23 +277,18 @@ export default function Home() {
         </a>
       </footer>
 
-      <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
             <a
               href="https://wa.me/5561996386998"
               target="_blank"
               rel="noopener noreferrer"
-              className="fixed bottom-4 right-4 z-50 bg-green-500 text-white p-3 sm:p-4 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"
+              className="fixed bottom-4 right-4 z-50 bg-green-500 text-white p-4 rounded-full shadow-lg hover:scale-110 hover:shadow-xl transition-all duration-200"
             >
-              <FaWhatsapp size={28} />
+              <FaWhatsapp size={32} />
             </a>
           </TooltipTrigger>
-          <TooltipContent
-            side="top"
-            align="end"
-            className="bg-primary text-primary-foreground"
-          >
+          <TooltipContent side="top" align="end" className="bg-primary text-primary-foreground">
             <p>Alguma dúvida? Chama a gente no zap!</p>
           </TooltipContent>
         </Tooltip>
