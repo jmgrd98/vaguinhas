@@ -19,3 +19,18 @@ export async function connectToDatabase() {
   cachedDb = db;
   return { client, db };
 }
+
+export async function getAllSubscribers() {
+  try {
+    const { db } = await connectToDatabase();
+    const subscribersCollection = db.collection("users");
+    
+    return await subscribersCollection.find(
+      { confirmed: true }, 
+      { projection: { email: 1, _id: 0 } }
+    ).toArray();
+  } catch (error) {
+    console.error("Failed to fetch subscribers:", error);
+    return [];
+  }
+}
