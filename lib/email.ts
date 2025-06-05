@@ -16,8 +16,7 @@ const transporter = createTransport({
 async function loadTemplate(templateName: string, replacements: Record<string, string>) {
   const templatePath = path.join(process.cwd(), 'emails', `${templateName}.html`);
   let content = await fs.readFile(templatePath, 'utf-8');
-  
-  // Replace placeholders
+
   Object.entries(replacements).forEach(([key, value]) => {
     content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
   });
@@ -39,7 +38,7 @@ export async function sendConfirmationEmail(email: string, token: string) {
   }
 
   const mailOptions = {
-    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: "Confirme seu e-mail para começar a receber vaguinhas 🧡",
     html,
@@ -61,7 +60,7 @@ export async function sendAdminNotification(email: string) {
   });
 
   const mailOptions = {
-    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
     to: "jmgrd98@gmail.com",
     subject: "Novo cadastro no vaguinhas",
     html

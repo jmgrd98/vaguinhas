@@ -115,6 +115,22 @@ export default function Home() {
         }),
       });
 
+      if (res.status === 500) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Erro no servidor");
+      }
+
+      if (res.status === 201) {
+        localStorage.setItem("confirmationEmail", email);
+        localStorage.setItem("lastResend", Date.now().toString());
+        setCooldown(60);
+        setCanResend(false);
+        setStatus("success");
+        setShowConfetti(true);
+        setEmail("");
+        setSeniorityLevel("");
+      }
+
       if (res.status === 409) {
         toast.warning("Esse e-mail já está cadastrado!", {
           description: "Obrigado, seu e-mail já foi validado.",
@@ -132,9 +148,10 @@ export default function Home() {
       setShowConfetti(true);
       setEmail("");
       setSeniorityLevel("");
-    } catch (err) {
+    } catch (err: unknown) {
       console.error(err);
       setStatus("error");
+      toast.error("Erro ao salvar e-mail");
     }
   };
 
@@ -250,7 +267,7 @@ export default function Home() {
           </Select>
 
           <Button
-            className="w-full max-w-md sm:max-w-lg lg:max-w-xl py-3 sm:py-4 hover:scale-105 transition-transform"
+            className="w-full py-3 sm:py-4 hover:scale-105 transition-transform"
             variant="default"
             size="lg"
             onClick={saveEmail}
