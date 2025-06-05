@@ -146,3 +146,30 @@ export async function sendAdminNotification(email: string) {
 export function generateConfirmationToken() {
   return randomBytes(32).toString('hex');
 }
+
+export async function sendSupportUsEmail(email: string) {
+  const html = await loadTemplate("support-us", {
+    CURRENT_YEAR: new Date().getFullYear().toString(),
+  });
+
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    from: `vaguinhas <${process.env.EMAIL_FROM}>`,
+    to: email,
+    subject: "Nos ajude a continuar – apoie a Vaguinhas",
+    html,
+    attachments: [
+      {
+        filename: "vaguinhas.png",
+        content: LOGO_BASE64.split("base64,")[1],
+        encoding: "base64",
+        cid: "logo@vaguinhas",
+      },
+    ],
+  };
+
+  return transporter.sendMail(mailOptions);
+}
