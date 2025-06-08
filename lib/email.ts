@@ -33,6 +33,8 @@ const baseMailOptions = {
     }],
 }
 
+const baseUrl = process.env.NEXTAUTH_URL;
+
 async function loadTemplate(templateName: string, replacements: Record<string, string>) {
   const templatePath = path.join(process.cwd(), 'emails', `${templateName}.html`);
   let content = await fs.readFile(templatePath, 'utf-8');
@@ -45,7 +47,7 @@ async function loadTemplate(templateName: string, replacements: Record<string, s
 }
 
 export async function sendConfirmationEmail(email: string, token: string) {
-  const baseUrl = process.env.NEXTAUTH_URL;
+
   const confirmationLink = `${baseUrl}/confirm-email?token=${token}`;
 
   const html = await loadTemplate('confirmation', {
@@ -132,6 +134,27 @@ export async function sendFavouriteOnGithubEmail(email: string) {
     ...baseMailOptions,
     to: email,
     subject: "Favorite-nos no Github! 🧡",
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+export async function sendConfirmEmailReminder(email: string, token: string) {
+  const confirmationLink = `${baseUrl}/confirm-email?token=${token}`;
+  const html = await loadTemplate("confirm-email-reminder", {
+    CONFIRMATION_LINK: confirmationLink,
+    CURRENT_YEAR: new Date().getFullYear().toString(),
+  });
+
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Você esqueceu de confirmar seu e-mail? 🤔",
     html,
   };
 
