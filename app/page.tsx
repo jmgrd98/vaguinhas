@@ -45,7 +45,6 @@ export default function Home() {
     height: typeof window !== "undefined" ? window.innerHeight : 0,
   });
 
-  // Handle window resize for confetti
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -153,27 +152,38 @@ export default function Home() {
         const confirmedEmail = email;
 
         setTimeout(async () => {
-        try {
-          await fetch("/api/send-support-us-email", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: confirmedEmail })
-          });
-        } catch (err) {
-          console.error("Erro ao enviar support email:", err);
-        }
-      }, 120_000);
+          try {
+            await fetch("/api/send-favourite-on-github-email", {
+              
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: confirmedEmail })
+            });
+          } catch (err) {
+            console.error("Erro ao enviar support email:", err);
+          }
+        }, 120_000);
+
+        setTimeout(async () => {
+          try {
+            await fetch("/api/send-support-us-email", {
+              
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email: confirmedEmail })
+            });
+          } catch (err) {
+            console.error("Erro ao enviar support email:", err);
+          }
+        }, 600_000);
 
       return;
     }
 
-    // Fallback for any other non-OK status
     if (!res.ok) {
       throw new Error("Unexpected response status");
     }
 
-
-      
     } catch (err: unknown) {
       console.error(err);
       setStatus("error");
@@ -301,7 +311,7 @@ export default function Home() {
           </Select>
 
           <Button
-            className="w-full py-3 sm:py-4 hover:scale-105 transition-transform"
+            className="w-full py-3 sm:py-4 hover:scale-105 transition-transform cursor-pointer"
             variant="default"
             size="lg"
             onClick={saveEmail}

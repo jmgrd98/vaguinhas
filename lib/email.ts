@@ -118,3 +118,22 @@ export async function sendSupportUsEmail(email: string) {
 
   return transporter.sendMail(mailOptions);
 }
+
+export async function sendFavouriteOnGithubEmail(email: string) {
+  const html = await loadTemplate("favourite-on-github", {
+    CURRENT_YEAR: new Date().getFullYear().toString(),
+  });
+
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Favorite-nos no Github! 🧡",
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
