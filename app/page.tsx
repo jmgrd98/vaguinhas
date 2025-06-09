@@ -27,6 +27,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 
+
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
 export default function Home() {
@@ -80,7 +81,7 @@ export default function Home() {
 
   const validateEmail = () => {
     try {
-      emailSchema.parse(email);
+      emailSchema.safeParse(email);
       setValidationError(null);
       return true;
     } catch (error) {
@@ -105,14 +106,22 @@ export default function Home() {
         : ["Mid-Senior level", "Associate"];
 
     try {
-      const res = await fetch("/api/save-email", {
+      const res = await fetch("/api/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+         },
         body: JSON.stringify({
           email,
           seniorityLevel: mappedSeniority,
         }),
       });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
+      }
 
       if (res.status === 500) {
         const errorData = await res.json();
@@ -185,9 +194,12 @@ export default function Home() {
     }
 
     } catch (err: unknown) {
-      console.error(err);
+      if (err instanceof Error) {
+        toast.error(`Error: ${err.message}`);
+      } else {
+        toast.error("Unknown error occurred");
+      }
       setStatus("error");
-      toast.error("Erro ao salvar e-mail");
     }
   };
 
