@@ -3,7 +3,6 @@ import { sendFavouriteOnGithubEmail } from "@/lib/email";
 
 export async function POST(request: Request) {
   try {
-    // Get the email from the request body
     const { email } = await request.json();
     
     if (!email) {
@@ -13,7 +12,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Send email only to this specific email
     await sendFavouriteOnGithubEmail(email);
 
     return NextResponse.json(
