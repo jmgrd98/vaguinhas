@@ -7,10 +7,6 @@
         {
             "path": "/api/send-favourite-on-github-email-to-all",
             "schedule": "0 16 * * 4"
-        },
-        {
-            "path": "/api/send-support-us-email-to-all",
-            "schedule": "0 16 * * 6"
         }
     ]
 }
