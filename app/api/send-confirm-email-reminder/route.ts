@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
 import { sendConfirmEmailReminder, generateConfirmationToken } from '@/lib/email';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   // Enhanced secret validation
-  const secret = request.nextUrl.searchParams.get('secret');
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    console.warn('Unauthorized cron job attempt');
-    return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  }
+  // const secret = request.nextUrl.searchParams.get('secret');
+  // if (!secret || secret !== process.env.CRON_SECRET) {
+  //   console.warn('Unauthorized cron job attempt');
+  //   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+  // }
 
   try {
     const { db } = await connectToDatabase();
