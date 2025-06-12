@@ -26,6 +26,20 @@ export async function getAllSubscribers() {
     const subscribersCollection = db.collection("users");
     
     return await subscribersCollection.find(
+      { projection: { email: 1, _id: 0 } }
+    ).toArray();
+  } catch (error) {
+    console.error("Failed to fetch subscribers:", error);
+    return [];
+  }
+}
+
+export async function getAllConfirmedSubscribers() {
+  try {
+    const { db } = await connectToDatabase();
+    const subscribersCollection = db.collection("users");
+    
+    return await subscribersCollection.find(
       { confirmed: true }, 
       { projection: { email: 1, _id: 0 } }
     ).toArray();

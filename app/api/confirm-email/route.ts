@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const headers = {
     'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
       ? '*' 
-      : 'https://vaguinhas.com.br',
+      : 'https://www.vaguinhas.com.br',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type'
   };
@@ -111,7 +111,7 @@ export async function OPTIONS() {
     headers: {
       'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
         ? '*' 
-        : 'https://vaguinhas.com.br',
+        : 'https://www.vaguinhas.com.br',
       'Access-Control-Allow-Methods': 'GET, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     }

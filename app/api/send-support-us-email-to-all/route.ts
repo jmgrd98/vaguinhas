@@ -15,7 +15,7 @@ const ratelimit = new Ratelimit({
 // Shared CORS headers config
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin":
-    process.env.NODE_ENV === "development" ? "*" : "https://vaguinhas.com.br",
+    process.env.NODE_ENV === "development" ? "*" : "https://www.vaguinhas.com.br",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
 };
