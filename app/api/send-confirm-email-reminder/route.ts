@@ -15,30 +15,12 @@ export async function GET() {
     
     // Calculate time thresholds
     const now = new Date();
-    const twoDaysAgo = new Date(now.getTime() - 48 * 60 * 60 * 1000);
-    const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
     // Find unconfirmed users who need reminders
     const users = await db.collection("users").find({
       confirmed: false,
-      $or: [
-        // First reminder: 2 days after registration
-        {
-          createdAt: { 
-            $gte: twoDaysAgo,
-            $lt: new Date(twoDaysAgo.getTime() + 1 * 60 * 60 * 1000) // 1-hour window
-          },
-          lastReminderSent: { $exists: false }
-        },
-        // Follow-up reminder: 7 days after registration
-        {
-          createdAt: { $lte: oneWeekAgo },
-          lastReminderSent: { $lte: oneWeekAgo },
-          reminderCount: { $lt: 3 } // Max 3 reminders
-        }
-      ]
     }).toArray();
-
+    
     let processed = 0;
     let skipped = 0;
     
