@@ -1,0 +1,19 @@
+name: Send Confirm Email Reminder
+
+on:
+  schedule:
+    - cron: '0 8 * * 2,4'
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    env:
+      API_ENDPOINT: https://vaguinhas.com.br/api/send-reminder-email-to-all
+      API_TOKEN: ${{ secrets.JWT_SECRET }}
+
+    steps:
+      - name: Send reminder emails
+        run: |
+          curl -X POST "$API_ENDPOINT" \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer $JWT_SECRET"
