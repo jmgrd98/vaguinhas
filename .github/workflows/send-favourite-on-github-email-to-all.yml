@@ -1,0 +1,22 @@
+name: Send Favourite On Github Email To All
+
+on:
+  schedule:
+
+    - cron: '0 16 * * 1,3'
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    env:
+      API_ENDPOINT: https://vaguinhas.com.br/api/send-favourite-on-github-email-to-all
+      API_TOKEN: ${{ secrets.JWT_SECRET }}
+
+    steps:
+      - name: Send favourite on github emails
+        run: |
+          curl -X POST "$API_ENDPOINT" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.JWT_SECRET }}"
+
+
