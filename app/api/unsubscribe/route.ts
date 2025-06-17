@@ -18,7 +18,7 @@ const unsubscribePostSchema = z.object({
 });
 
 const unsubscribeGetSchema = z.object({
-  token: z.string().min(32, "Invalid token"),
+  token: z.string().min(1, "Token is required"),
   email: z.string().email().optional(),
 });
 
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     const validation = unsubscribeGetSchema.safeParse({ token, email });
     if (!validation.success) {
       return NextResponse.redirect(
-        new URL("/unsubscribe-error?reason=invalid_token", request.nextUrl.origin),
+        new URL(`/unsubscribe-error?reason=invalid_token&token=${token}`, request.nextUrl.origin),
         { headers: corsHeaders }
       );
     }
@@ -67,12 +67,26 @@ export async function GET(request: NextRequest) {
     // Database operations
     const { db } = await connectToDatabase();
     
-    // Find user by token OR email (for resubscribe)
-    const query = token 
-      ? { unsubscribeToken: token }
-      : { email: validation.data.email };
+    let user;
     
-    const user = await db.collection("users").findOne(query);
+    // Check if token is an email (contains '@') or base64 encoded email
+    if (token && token.includes("@")) {
+      // Token is actually an email
+      user = await db.collection("users").findOne({ email: token });
+    } else if (token) {
+      try {
+        // Try to decode base64 token
+        const decodedEmail = Buffer.from(token, 'base64').toString('utf-8');
+        user = await db.collection("users").findOne({ email: decodedEmail });
+      } catch (decodeError) {
+        console.log("Token is not base64, trying as hex token", decodeError);
+        // Try to find by token if it's a hex string
+        user = await db.collection("users").findOne({ unsubscribeToken: token });
+      }
+    } else if (email) {
+      // Find by email directly
+      user = await db.collection("users").findOne({ email });
+    }
 
     if (!user) {
       return NextResponse.redirect(
@@ -82,20 +96,23 @@ export async function GET(request: NextRequest) {
     }
 
     // Update user status
-    const updateData = token 
-      ? { 
-          $set: { unsubscribed: true, unsubscribedAt: new Date() },
-          $unset: { unsubscribeToken: "" }
-        }
-      : { $set: { unsubscribed: false } };
+    const updateData = { 
+      $set: { 
+        unsubscribed: true, 
+        unsubscribedAt: new Date(),
+      },
+      $unset: {
+        unsubscribeToken: ""
+      }
+    };
 
     await db.collection("users").updateOne({ _id: user._id }, updateData);
 
-    // Redirect to appropriate page
+    // Redirect to success page
     return NextResponse.redirect(
       new URL(
         `/unsubscribe-success?email=${encodeURIComponent(user.email)}`, 
-        request.nextUrl.origin  // Use origin instead of request.url
+        request.nextUrl.origin
       ),
       { headers: corsHeaders }
     );
@@ -107,6 +124,8 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// ... rest of the code remains the same ...
 
 export async function POST(request: NextRequest) {
   try {
