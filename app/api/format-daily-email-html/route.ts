@@ -231,7 +231,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
         `https://vaguinhas.com.br/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
       );
     } else {
-      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-error');
+      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-success');
     }
 
     // Inline CSS
