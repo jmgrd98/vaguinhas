@@ -6,7 +6,7 @@ export async function GET() {
   try {
     const subscribers = await getAllSubscribers();
     const emails = subscribers.map((subscriber) => subscriber.email);
-
+    
     if (!emails || !Array.isArray(emails) || emails.length === 0) {
     return NextResponse.json(
         { error: "An array of email addresses is required" },

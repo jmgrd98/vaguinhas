@@ -24,10 +24,13 @@ export async function getAllSubscribers() {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
-    
-    return await subscribersCollection.find(
+
+    const subscribers =  await subscribersCollection.find(
+      {},
       { projection: { email: 1, _id: 0 } }
     ).toArray();
+
+    return subscribers;
   } catch (error) {
     console.error("Failed to fetch subscribers:", error);
     return [];
