@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 
     // Redirect to success page
     return NextResponse.redirect(
-      new URL('/unsubscribe-success', request.url),
+      new URL(`/unsubscribe-success?email=${encodeURIComponent(user.email)}`, request.url),
       { headers: corsHeaders }
     );
   } catch (error) {
