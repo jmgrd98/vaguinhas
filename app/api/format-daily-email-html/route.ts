@@ -116,7 +116,7 @@ const EMAIL_FOOTER = `
 
     <!-- NOVO: link de unsubscribe -->
     <p style="margin-top: 1rem; font-size: 0.8rem; color: #999;">
-      <a href="https://seu-dominio.com/api/unsubscribe" style="color: #999; text-decoration: none;">
+      <a href="https://www.vaguinhas.com.br/api/unsubscribe" style="color: #999; text-decoration: none;">
         Cancelar inscrição
       </a>
     </p>
