@@ -150,7 +150,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Generate unsubscribe token from email
     // (You'll need to implement proper token generation in your subscription flow)
     const unsubscribeToken = email ? btoa(email) : ''; // Simple base64 encoding for demo
-
+    console.log('UNSUBSCRIBE TOKEN', unsubscribeToken)
     const contentType = request.headers.get('content-type') || '';
 
 

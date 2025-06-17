@@ -42,18 +42,33 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Extract email from query
-    const emailParam = request.nextUrl.searchParams.get("email") || '';
-    const parse = emailSchema.safeParse(emailParam);
+    // Extract and decode token
+    const token = request.nextUrl.searchParams.get("email") || '';
+    let email = '';
+
+    try {
+      // URL-decode then base64-decode
+      const decodedToken = decodeURIComponent(token);
+      email = Buffer.from(decodedToken, 'base64').toString('utf-8');
+    } catch (error) {
+      console.error('Token decoding error:', error);
+      return NextResponse.redirect(
+        new URL(`/unsubscribe-error?reason=invalid_token`, request.nextUrl.origin),
+        { headers: corsHeaders }
+      );
+    }
+
+    // Validate email
+    const parse = emailSchema.safeParse(email);
     if (!parse.success) {
       return NextResponse.redirect(
         new URL(`/unsubscribe-error?reason=invalid_email`, request.nextUrl.origin),
         { headers: corsHeaders }
       );
     }
-    const email = parse.data;
+    email = parse.data;
 
-    // DB ops
+    // DB operations
     const { db } = await connectToDatabase();
     const user = await db.collection("users").findOne({ email });
     if (!user) {
@@ -63,7 +78,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Update unsubscribe
+    // Delete user
     await db.collection("users").deleteOne({ email: user.email });
 
     // Redirect to success
