@@ -30,6 +30,7 @@ const corsHeaders = {
 };
 
 export async function GET(request: NextRequest) {
+  
   try {
     // Rate limiting
     const ip = request.headers.get("cf-connecting-ip") || 
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
                "127.0.0.1";
     
     const { success } = await ratelimit.limit(ip);
-    
+    console.log('SUCCESS', success);
     if (!success) {
       return NextResponse.redirect(
         new URL('/unsubscribe-error?reason=rate_limit', request.url),
