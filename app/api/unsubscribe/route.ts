@@ -92,12 +92,11 @@ export async function GET(request: NextRequest) {
     await db.collection("users").updateOne({ _id: user._id }, updateData);
 
     // Redirect to appropriate page
-    const redirectUrl = token
-      ? `/unsubscribe-success?email=${encodeURIComponent(user.email)}`
-      : "/subscribe-success";
-
     return NextResponse.redirect(
-      new URL(redirectUrl, request.nextUrl.origin),
+      new URL(
+        `/unsubscribe-success?email=${encodeURIComponent(user.email)}`, 
+        request.nextUrl.origin  // Use origin instead of request.url
+      ),
       { headers: corsHeaders }
     );
   } catch (error) {
