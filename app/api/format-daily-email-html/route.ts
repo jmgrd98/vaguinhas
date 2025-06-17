@@ -1,12 +1,7 @@
 // app/api/format-email/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import juice from 'juice'; // For inlining CSS
+import juice from 'juice';
 
-// Tipos para os dados de entrada
-interface FormatEmailRequest {
-  htmlContent: string;
-  unsubscribeToken: string;
-}
 
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
@@ -150,40 +145,26 @@ const EMAIL_TEMPLATE_BOTTOM = `
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     let rawHtml: string;
-    let unsubscribeToken: string = '';
+    const email = new URL(request.url).searchParams.get('email') || '';
+    
+    // Generate unsubscribe token from email
+    // (You'll need to implement proper token generation in your subscription flow)
+    const unsubscribeToken = email ? btoa(email) : ''; // Simple base64 encoding for demo
+
     const contentType = request.headers.get('content-type') || '';
 
-    // Handle JSON payload
-    if (contentType.includes('application/json')) {
-      try {
-        // Tente analisar o JSON e capturar erros de parsing
-        const body = await request.json() as FormatEmailRequest;
-        rawHtml = body.htmlContent;
-        unsubscribeToken = body.unsubscribeToken;
-      } catch (jsonError) {
-        console.error('JSON parsing error:', jsonError);
-        return new NextResponse('Invalid JSON format', {
-          status: 400,
-          headers: { 'Content-Type': 'text/plain' },
-        });
-      }
-    } 
-    // Handle raw HTML
-    else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+
+   // Handle HTML content
+    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
       rawHtml = await request.text();
-      
-      // Try to get token from headers or query params
-      unsubscribeToken = request.headers.get('x-unsubscribe-token') || 
-                         new URL(request.url).searchParams.get('token') ||
-                         '';
     } 
     // Unsupported media type
     else {
-      return new NextResponse('Unsupported Media Type: Expected JSON or HTML', {
+      return new NextResponse('Unsupported Media Type: Expected HTML', {
         status: 415,
         headers: { 
           'Content-Type': 'text/plain',
-          'Accept': 'application/json, text/html'
+          'Accept': 'text/html'
         },
       });
     }
@@ -241,13 +222,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Add unsubscribe link
     // Then in the POST handler:
+     // Add unsubscribe link
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
         "{{UNSUBSCRIBE_LINK}}", 
         `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
       );
     } else {
-      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-success');
+      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', `${baseUrl}/unsubscribe-success`);
     }
 
     // Inline CSS
