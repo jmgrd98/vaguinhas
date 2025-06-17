@@ -88,33 +88,41 @@ const EMAIL_TEMPLATE_TOP = `
 `;
 
 const EMAIL_FOOTER = `
-              <div class="footer-content" style="margin-top: 3rem; padding: 1.5rem; border-top: 1px solid #eaeaea; text-align: center; font-family: Arial, sans-serif; color: #333;">
-                <p>Essas foram as vaguinhas do dia! Sinta-se livre para responder a esse e-mail se você tiver quaquer dúvida, ou nos dizendo se você conseguiu a vaga. 😊</p>
-                
-                <p style="margin-top: 1.5rem; font-weight: bold; font-size: 1.1rem;">Gostou das vagas?</p>
-                
-                <p style="margin: 1rem 0;">
-                  Então considere fazer uma doação de qualquer valor através do PIX 
-                  <strong style="background-color: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px;">vaguinhas@vaguinhas.com.br</strong> 
-                  para ajudar a nos manter online!
-                </p>
-                
-                <p style="margin-bottom: 1rem;">Ou escaneie o QR Code abaixo:</p>
-                
-                <img 
-                  src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/qrcode-pix.png" 
-                  alt="QR Code para doação PIX" 
-                  width="200"
-                  height="200"
-                  class="qr-code"
-                  style="max-width: 200px; margin: 0 auto; display: block; border: 1px solid #ddd; border-radius: 8px;"
-                >
-                
-                <p style="color: #888; font-size: 0.9rem; margin-top: 0.5rem;">
-                  Se o QR Code não aparecer, utilize o endereço PIX: vaguinhas@vaguinhas.com.br
-                </p>
-              </div>
+  <div class="footer-content" style="margin-top: 3rem; padding: 1.5rem; border-top: 1px solid #eaeaea; text-align: center; font-family: Arial, sans-serif; color: #333;">
+    <p>Essas foram as vaguinhas do dia! Sinta-se livre para responder a esse e-mail se você tiver qualquer dúvida, ou nos dizendo se você conseguiu a vaga. 😊</p>
+    
+    <p style="margin-top: 1.5rem; font-weight: bold; font-size: 1.1rem;">Gostou das vagas?</p>
+    
+    <p style="margin: 1rem 0;">
+      Então considere fazer uma doação de qualquer valor através do PIX 
+      <strong style="background-color: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px;">vaguinhas@vaguinhas.com.br</strong> 
+      para ajudar a nos manter online!
+    </p>
+    
+    <p style="margin-bottom: 1rem;">Ou escaneie o QR Code abaixo:</p>
+    
+    <img 
+      src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/qrcode-pix.png" 
+      alt="QR Code para doação PIX" 
+      width="200"
+      height="200"
+      class="qr-code"
+      style="max-width: 200px; margin: 0 auto; display: block; border: 1px solid #ddd; border-radius: 8px;"
+    >
+    
+    <p style="color: #888; font-size: 0.9rem; margin-top: 0.5rem;">
+      Se o QR Code não aparecer, utilize o endereço PIX: vaguinhas@vaguinhas.com.br
+    </p>
+
+    <!-- NOVO: link de unsubscribe -->
+    <p style="margin-top: 1rem; font-size: 0.8rem; color: #999;">
+      <a href="https://seu-dominio.com/api/unsubscribe" style="color: #999; text-decoration: none;">
+        Cancelar inscrição
+      </a>
+    </p>
+  </div>
 `;
+
 
 const EMAIL_TEMPLATE_BOTTOM = `
             </td>

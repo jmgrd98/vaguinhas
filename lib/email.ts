@@ -16,20 +16,26 @@ export interface Job {
 }
 
 const transporter = createTransport({
-  service: process.env.EMAIL_SERVICE,
+  // service: process.env.EMAIL_SERVICE,
+  host: process.env.SMTP_HOST,
+  port: Number(process.env.SMTP_PORT),
+  secure: process.env.SMTP_SECURE === 'true',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
   },
   tls: {
-    minVersion: "TLSv1.2",
-    ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-    rejectUnauthorized: true,
-  },
-  connectionTimeout: 10000, // 10 seconds
-  socketTimeout: 10000, // 10 seconds
-  logger: true, // Enable logging
-  debug: true, // Enable debugging
+    ciphers: 'SSLv3'
+  }
+  // tls: {
+  //   minVersion: "TLSv1.2",
+  //   ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
+  //   rejectUnauthorized: true,
+  // },
+  // connectionTimeout: 10000, // 10 seconds
+  // socketTimeout: 10000, // 10 seconds
+  // logger: true, // Enable logging
+  // debug: true, // Enable debugging
 });
 
 

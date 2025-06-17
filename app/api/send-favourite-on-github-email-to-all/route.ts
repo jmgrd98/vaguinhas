@@ -2,30 +2,39 @@ import { NextResponse } from "next/server";
 import { sendFavouriteOnGithubEmail } from "@/lib/email";
 import { getAllSubscribers } from "@/lib/mongodb";
 
+async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
+  for (const email of emails) {
+    try {
+      await sendFn(email);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    } catch (error) {
+      console.error(`Failed to send to ${email}:`, error);
+    }
+  }
+}
+
 export async function GET() {
   try {
     const subscribers = await getAllSubscribers();
-    const emails = subscribers.map((subscriber) => subscriber.email);
+    const emails = subscribers.map(s => s.email).filter(Boolean);
     
-    if (!emails || !Array.isArray(emails) || emails.length === 0) {
-    return NextResponse.json(
-        { error: "An array of email addresses is required" },
+    if (!emails.length) {
+      return NextResponse.json(
+        { error: "No valid subscribers found" },
         { status: 400 }
-    );
+      );
     }
 
-    await Promise.all(
-        emails.map((email) => sendFavouriteOnGithubEmail(email))
-    );
+    await throttleEmails(emails, sendFavouriteOnGithubEmail, 1500);
 
     return NextResponse.json(
-      { message: `Support emails sent to ${emails.length} recipients successfully` },
+      { message: `Emails queued for ${emails.length} recipients` },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Failed to send support emails:", error);
+    console.error("Email sending failed:", error);
     return NextResponse.json(
-      { error: "Failed to send support emails" },
+      { error: "Email processing error" },
       { status: 500 }
     );
   }
