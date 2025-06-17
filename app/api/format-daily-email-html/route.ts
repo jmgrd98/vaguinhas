@@ -241,14 +241,19 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     
     // Add unsubscribe link
     // Then in the POST handler:
-    if (unsubscribeToken) {
-      fullEmail = fullEmail.replace(
-        "{{UNSUBSCRIBE_LINK}}", 
-        `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+    if (!unsubscribeToken) {
+      return new NextResponse(
+        'unsubscribeToken obrigatório para gerar o link de cancelamento',
+        { status: 400, headers: { 'Content-Type': 'text/plain' } }
       );
-    } else {
-      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-success');
     }
+
+    // daí sempre:
+    fullEmail = fullEmail.replace(
+      '{{UNSUBSCRIBE_LINK}}',
+      `https://vaguinhas.com.br/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+    );
+
 
     // Inline CSS
     const inlined = juice(fullEmail);
