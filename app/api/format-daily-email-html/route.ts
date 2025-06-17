@@ -149,9 +149,18 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Handle JSON payload
     if (contentType.includes('application/json')) {
-      const body = (await request.json()) as FormatEmailRequest;
-      rawHtml = body.htmlContent;
-      unsubscribeToken = body.unsubscribeToken;
+      try {
+        // Tente analisar o JSON e capturar erros de parsing
+        const body = await request.json() as FormatEmailRequest;
+        rawHtml = body.htmlContent;
+        unsubscribeToken = body.unsubscribeToken;
+      } catch (jsonError) {
+        console.error('JSON parsing error:', jsonError);
+        return new NextResponse('Invalid JSON format', {
+          status: 400,
+          headers: { 'Content-Type': 'text/plain' },
+        });
+      }
     } 
     // Handle raw HTML
     else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
@@ -223,7 +232,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ${EMAIL_FOOTER}
       ${EMAIL_TEMPLATE_BOTTOM}
     `;
-
+    
     // Add unsubscribe link
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
