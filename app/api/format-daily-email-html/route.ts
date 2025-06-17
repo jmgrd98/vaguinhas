@@ -2,6 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import juice from 'juice'; // For inlining CSS
 
+// Tipos para os dados de entrada
+interface FormatEmailRequest {
+  htmlContent: string;
+  unsubscribeToken: string;
+}
+
+// Constantes para o template do email
 const EMAIL_TEMPLATE_TOP = `
 <!DOCTYPE html>
 <html>
@@ -114,7 +121,7 @@ const EMAIL_FOOTER = `
       Se o QR Code não aparecer, utilize o endereço PIX: vaguinhas@vaguinhas.com.br
     </p>
 
-    <!-- NOVO: link de unsubscribe -->
+    <!-- Link de unsubscribe -->
     <p style="text-align: center; font-size: 0.8rem; color: #999; margin-top: 1.5rem;">
       <a href="{{UNSUBSCRIBE_LINK}}" style="color: #999; text-decoration: underline;">
         Não quer mais receber nossos e-mails? Cancelar inscrição
@@ -122,7 +129,6 @@ const EMAIL_FOOTER = `
     </p>
   </div>
 `;
-
 
 const EMAIL_TEMPLATE_BOTTOM = `
             </td>
@@ -135,103 +141,123 @@ const EMAIL_TEMPLATE_BOTTOM = `
 </html>
 `;
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    let htmlContent = await request.text();
+    // Recebe e valida os dados de entrada
+    const requestBody: unknown = await request.json();
     
-    // Add CSS classes to job content
-    htmlContent = htmlContent
+    // Validação de tipo para os dados de entrada
+    if (
+      !requestBody || 
+      typeof requestBody !== 'object' || 
+      !('htmlContent' in requestBody) || 
+      !('unsubscribeToken' in requestBody) ||
+      typeof (requestBody as FormatEmailRequest).htmlContent !== 'string' ||
+      typeof (requestBody as FormatEmailRequest).unsubscribeToken !== 'string'
+    ) {
+      return new NextResponse('Invalid request format. Expected { htmlContent: string, unsubscribeToken: string }', {
+        status: 400,
+        headers: { 'Content-Type': 'text/plain' },
+      });
+    }
+    
+    const { htmlContent, unsubscribeToken } = requestBody as FormatEmailRequest;
+
+    // Processa o conteúdo HTML
+    let processedHtml = htmlContent
       .replace(/<h2/g, '<h2 class="job-title"')
       .replace(/<h3/g, '<h3 class="company-name"')
       .replace(/<p>/g, '<p class="job-description">')
       .replace(/<a href/g, '<a class="job-link" href');
     
-    // Replace company website links with "Ver empresa"
-    htmlContent = htmlContent.replace(
+    // Substitui links da empresa
+    processedHtml = processedHtml.replace(
       /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-      (match, href, text) => {
-        // Skip apply links that should become "Ver vaga"
-        if (text.includes('apply') || text.includes('vaga') || 
-            text.includes('jobs') || text.includes('candidatar') ||
-            text.includes('gupy') || text.includes('catho') ||
-            text.includes('buscojobs') || text.includes('linkedin')) {
+      (match: string, href: string, text: string): string => {
+        const applyKeywords = ['apply', 'vaga', 'jobs', 'candidatar', 'gupy', 'catho', 'buscojobs', 'linkedin'];
+        if (applyKeywords.some(keyword => text.toLowerCase().includes(keyword))) {
           return match;
         }
         return `<a class="company-link" href="${href}">Ver empresa</a>`;
       }
     );
     
-    // Replace apply URLs with "Ver vaga" button
-    htmlContent = htmlContent.replace(
+    // Substitui links de candidatura
+    processedHtml = processedHtml.replace(
       /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-      (match, href, text) => {
-        // Check if this is likely an apply link
-        if (text.includes('http') || text.includes('apply') || 
-            text.includes('vaga') || text.includes('jobs') || 
-            text.includes('candidatar') || text.includes('gupy') ||
-            text.includes('catho') || text.includes('buscojobs') ||
-            text.includes('linkedin')) {
+      (match: string, href: string, text: string): string => {
+        const applyKeywords = ['http', 'apply', 'vaga', 'jobs', 'candidatar', 'gupy', 'catho', 'buscojobs', 'linkedin'];
+        if (applyKeywords.some(keyword => text.toLowerCase().includes(keyword))) {
           return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
         }
         return match;
       }
     );
 
-    htmlContent = htmlContent.replace(
+    // Formata parágrafos de descrição
+    processedHtml = processedHtml.replace(
       /<p class="job-description">([\s\S]*?)<\/p>/g,
-      (_, content) => {
-        // Add space after sentence-ending dots missing a space
+      (_: string, content: string): string => {
         const spacedContent = content.replace(
           /([^.\s]|^)\.([A-Z])/g, 
           '$1. $2'
         );
-
-        // Split into sentences using existing space-based logic
-        const sentences = spacedContent.trim().split(/(?<=\.)\s+/);
+        
+        const sentences = spacedContent
+          .trim()
+          .split(/(?<=\.)\s+/)
+          .filter(Boolean);
         
         return sentences
-          .filter(Boolean)
-          .map((sent: string) => `<p class="job-description">${sent.trim()}</p>`)
+          .map(sent => `<p class="job-description">${sent.trim()}</p>`)
           .join(' ');
       }
     );
     
-    // Wrap the job content in a styled container
+    // Cria o conteúdo estilizado
     const styledContent = `
       <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
-        ${htmlContent}
+        ${processedHtml}
       </div>
     `;
 
-    // Combine all parts
+    // Constroi o link de unsubscribe
+    const unsubscribeLink = `https://vaguinhas.com.br/api/unsubscribe?token=${unsubscribeToken}`;
+    
+    // Atualiza o footer com o link
+    const fullFooter = EMAIL_FOOTER.replace('{{UNSUBSCRIBE_LINK}}', unsubscribeLink);
+
+    // Combina todas as partes do email
     const formattedEmail = `
       ${EMAIL_TEMPLATE_TOP}
       ${styledContent}
-      ${EMAIL_FOOTER}
+      ${fullFooter}
       ${EMAIL_TEMPLATE_BOTTOM}
     `;
 
-    // Inline CSS for email compatibility
+    // Aplica CSS inline para compatibilidade
     const inlinedEmail = juice(formattedEmail);
+    
     return new NextResponse(inlinedEmail, {
       status: 200,
-      headers: {
-        'Content-Type': 'text/html',
-      },
+      headers: { 'Content-Type': 'text/html' },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error processing email:', error);
-    return new NextResponse('Error processing HTML content', {
+    
+    const errorMessage = error instanceof Error ? 
+      error.message : 
+      'Unknown error occurred during email processing';
+    
+    return new NextResponse(`Error processing HTML content: ${errorMessage}`, {
       status: 500,
-      headers: {
-        'Content-Type': 'text/plain',
-      },
+      headers: { 'Content-Type': 'text/plain' },
     });
   }
 }
 
 // GET handler for usage instructions
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const usage = `
     <!DOCTYPE html>
     <html>
@@ -240,22 +266,24 @@ export async function GET() {
     </head>
     <body style="font-family: Arial, sans-serif; padding: 20px;">
       <h1>Email Formatting API</h1>
-      <p>Send a POST request with raw HTML content to this endpoint to format it as a Vaguinhas email.</p>
+      <p>Send a POST request with JSON payload to this endpoint to format it as a Vaguinhas email.</p>
       
       <h2>Example using curl:</h2>
       <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
 curl -X POST \\
-  -H "Content-Type: text/html" \\
-  --data "&lt;h2&gt;Desenvolvedor Front-end&lt;/h2&gt;
-          &lt;h3&gt;Empresa FC&lt;/h3&gt;
-          &lt;p&gt;&lt;a href='https://example.com'&gt;Ver site da empresa&lt;/a&gt;&lt;/p&gt;
-          &lt;p&gt;&lt;strong&gt;Requisitos:&lt;/strong&gt;&lt;br&gt;
-          - React, Next.js&lt;br&gt;
-          - TypeScript&lt;/p&gt;
-          &lt;p class='salary'&gt;Faixa Salarial: R$8.000,00 – R$9.000,00&lt;/p&gt;
-          &lt;p&gt;&lt;a class='apply-button' href='https://example.com/job'&gt;Ver vaga&lt;/a&gt;&lt;/p&gt;" \\
+  -H "Content-Type: application/json" \\
+  --data '{
+    "htmlContent": "<h2>Desenvolvedor Front-end</h2><h3>Empresa FC</h3><p><a href=\\"https://example.com\\">Ver site da empresa</a></p><p><strong>Requisitos:</strong><br>- React, Next.js<br>- TypeScript</p><p class=\\"salary\\">Faixa Salarial: R$8.000,00 – R$9.000,00</p><p><a class=\\"apply-button\\" href=\\"https://example.com/job\\">Ver vaga</a></p>",
+    "unsubscribeToken": "seu_token_unico_aqui"
+  }' \\
   http://localhost:3000/api/format-email
       </pre>
+      
+      <h2>Required Parameters:</h2>
+      <ul>
+        <li><strong>htmlContent</strong>: Raw HTML content of the jobs</li>
+        <li><strong>unsubscribeToken</strong>: Unique token for the unsubscribe link</li>
+      </ul>
       
       <h2>Features:</h2>
       <ul>
@@ -266,6 +294,7 @@ curl -X POST \\
         <li>Adds Vaguinhas branding</li>
         <li>Converts company links to "Ver empresa"</li>
         <li>Converts apply links to "Ver vaga" buttons</li>
+        <li>Includes unsubscribe link with unique token</li>
       </ul>
     </body>
     </html>
@@ -273,8 +302,6 @@ curl -X POST \\
 
   return new NextResponse(usage, {
     status: 200,
-    headers: {
-      'Content-Type': 'text/html',
-    },
+    headers: { 'Content-Type': 'text/html' },
   });
 }
