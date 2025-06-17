@@ -8,6 +8,12 @@ interface FormatEmailRequest {
   unsubscribeToken: string;
 }
 
+// Add at the top
+const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
+
+console.log('BASE URL', baseUrl)
+
+
 // Constantes para o template do email
 const EMAIL_TEMPLATE_TOP = `
 <!DOCTYPE html>
@@ -234,10 +240,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `;
     
     // Add unsubscribe link
+    // Then in the POST handler:
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
-        '{{UNSUBSCRIBE_LINK}}', 
-        `https://vaguinhas.com.br/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+        "{{UNSUBSCRIBE_LINK}}", 
+        `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
       );
     } else {
       fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-success');
