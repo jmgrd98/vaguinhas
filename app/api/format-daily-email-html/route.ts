@@ -143,159 +143,129 @@ const EMAIL_TEMPLATE_BOTTOM = `
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
-    // Recebe e valida os dados de entrada
-    const requestBody: unknown = await request.json();
-    
-    // Validação de tipo para os dados de entrada
-    if (
-      !requestBody || 
-      typeof requestBody !== 'object' || 
-      !('htmlContent' in requestBody) || 
-      !('unsubscribeToken' in requestBody) ||
-      typeof (requestBody as FormatEmailRequest).htmlContent !== 'string' ||
-      typeof (requestBody as FormatEmailRequest).unsubscribeToken !== 'string'
-    ) {
-      return new NextResponse('Invalid request format. Expected { htmlContent: string, unsubscribeToken: string }', {
-        status: 400,
-        headers: { 'Content-Type': 'text/plain' },
+    let rawHtml: string;
+    let unsubscribeToken: string = '';
+    const contentType = request.headers.get('content-type') || '';
+
+    // Handle JSON payload
+    if (contentType.includes('application/json')) {
+      const body = (await request.json()) as FormatEmailRequest;
+      rawHtml = body.htmlContent;
+      unsubscribeToken = body.unsubscribeToken;
+    } 
+    // Handle raw HTML
+    else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+      rawHtml = await request.text();
+      
+      // Try to get token from headers or query params
+      unsubscribeToken = request.headers.get('x-unsubscribe-token') || 
+                         new URL(request.url).searchParams.get('token') ||
+                         '';
+    } 
+    // Unsupported media type
+    else {
+      return new NextResponse('Unsupported Media Type: Expected JSON or HTML', {
+        status: 415,
+        headers: { 
+          'Content-Type': 'text/plain',
+          'Accept': 'application/json, text/html'
+        },
       });
     }
-    
-    const { htmlContent, unsubscribeToken } = requestBody as FormatEmailRequest;
 
-    // Processa o conteúdo HTML
-    let processedHtml = htmlContent
+    // Process HTML
+    let htmlContent = rawHtml
       .replace(/<h2/g, '<h2 class="job-title"')
       .replace(/<h3/g, '<h3 class="company-name"')
       .replace(/<p>/g, '<p class="job-description">')
       .replace(/<a href/g, '<a class="job-link" href');
-    
-    // Substitui links da empresa
-    processedHtml = processedHtml.replace(
+
+    // Process links
+    const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
+    const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
+
+    htmlContent = htmlContent.replace(
       /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
       (match: string, href: string, text: string): string => {
-        const applyKeywords = ['apply', 'vaga', 'jobs', 'candidatar', 'gupy', 'catho', 'buscojobs', 'linkedin'];
-        if (applyKeywords.some(keyword => text.toLowerCase().includes(keyword))) {
-          return match;
-        }
-        return `<a class="company-link" href="${href}">Ver empresa</a>`;
-      }
-    );
-    
-    // Substitui links de candidatura
-    processedHtml = processedHtml.replace(
-      /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-      (match: string, href: string, text: string): string => {
-        const applyKeywords = ['http', 'apply', 'vaga', 'jobs', 'candidatar', 'gupy', 'catho', 'buscojobs', 'linkedin'];
-        if (applyKeywords.some(keyword => text.toLowerCase().includes(keyword))) {
+        if (applyPattern.test(text) || applyPattern.test(href)) {
           return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
+        }
+        if (companyPattern.test(text) || companyPattern.test(href)) {
+          return `<a class="company-link" href="${href}">Ver empresa</a>`;
         }
         return match;
       }
     );
 
-    // Formata parágrafos de descrição
-    processedHtml = processedHtml.replace(
+    // Process paragraphs
+    htmlContent = htmlContent.replace(
       /<p class="job-description">([\s\S]*?)<\/p>/g,
       (_: string, content: string): string => {
-        const spacedContent = content.replace(
-          /([^.\s]|^)\.([A-Z])/g, 
-          '$1. $2'
-        );
-        
-        const sentences = spacedContent
-          .trim()
-          .split(/(?<=\.)\s+/)
-          .filter(Boolean);
-        
-        return sentences
-          .map(sent => `<p class="job-description">${sent.trim()}</p>`)
+        const spaced = content.replace(/([^.\s]|^)\.([A-Z])/g, '$1. $2');
+        return spaced.trim().split(/(?<=\.)\s+/)
+          .filter(s => s.trim().length > 0)
+          .map(s => `<p class="job-description">${s.trim()}</p>`)
           .join(' ');
       }
     );
-    
-    // Cria o conteúdo estilizado
+
+    // Wrap content
     const styledContent = `
       <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
-        ${processedHtml}
+        ${htmlContent}
       </div>
     `;
 
-    // Constroi o link de unsubscribe
-    const unsubscribeLink = `https://vaguinhas.com.br/api/unsubscribe?token=${unsubscribeToken}`;
-    
-    // Atualiza o footer com o link
-    const fullFooter = EMAIL_FOOTER.replace('{{UNSUBSCRIBE_LINK}}', unsubscribeLink);
-
-    // Combina todas as partes do email
-    const formattedEmail = `
+    // Build full email
+    let fullEmail = `
       ${EMAIL_TEMPLATE_TOP}
       ${styledContent}
-      ${fullFooter}
+      ${EMAIL_FOOTER}
       ${EMAIL_TEMPLATE_BOTTOM}
     `;
 
-    // Aplica CSS inline para compatibilidade
-    const inlinedEmail = juice(formattedEmail);
-    
-    return new NextResponse(inlinedEmail, {
+    // Add unsubscribe link
+    if (unsubscribeToken) {
+      fullEmail = fullEmail.replace(
+        '{{UNSUBSCRIBE_LINK}}', 
+        `https://vaguinhas.com.br/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+      );
+    } else {
+      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', 'https://vaguinhas.com.br/unsubscribe-error');
+    }
+
+    // Inline CSS
+    const inlined = juice(fullEmail);
+
+    return new NextResponse(inlined, {
       status: 200,
       headers: { 'Content-Type': 'text/html' },
     });
+    
   } catch (error: unknown) {
     console.error('Error processing email:', error);
     
     const errorMessage = error instanceof Error ? 
       error.message : 
-      'Unknown error occurred during email processing';
+      'Unknown error during email processing';
     
-    return new NextResponse(`Error processing HTML content: ${errorMessage}`, {
+    return new NextResponse(`Error: ${errorMessage}`, {
       status: 500,
       headers: { 'Content-Type': 'text/plain' },
     });
   }
 }
 
-// GET handler for usage instructions
+// GET handler (simplificado)
 export async function GET(): Promise<NextResponse> {
   const usage = `
     <!DOCTYPE html>
     <html>
-    <head>
-      <title>Email Formatting Service</title>
-    </head>
-    <body style="font-family: Arial, sans-serif; padding: 20px;">
-      <h1>Email Formatting API</h1>
-      <p>Send a POST request with JSON payload to this endpoint to format it as a Vaguinhas email.</p>
-      
-      <h2>Example using curl:</h2>
-      <pre style="background-color: #f5f5f5; padding: 15px; border-radius: 5px;">
-curl -X POST \\
-  -H "Content-Type: application/json" \\
-  --data '{
-    "htmlContent": "<h2>Desenvolvedor Front-end</h2><h3>Empresa FC</h3><p><a href=\\"https://example.com\\">Ver site da empresa</a></p><p><strong>Requisitos:</strong><br>- React, Next.js<br>- TypeScript</p><p class=\\"salary\\">Faixa Salarial: R$8.000,00 – R$9.000,00</p><p><a class=\\"apply-button\\" href=\\"https://example.com/job\\">Ver vaga</a></p>",
-    "unsubscribeToken": "seu_token_unico_aqui"
-  }' \\
-  http://localhost:3000/api/format-email
-      </pre>
-      
-      <h2>Required Parameters:</h2>
-      <ul>
-        <li><strong>htmlContent</strong>: Raw HTML content of the jobs</li>
-        <li><strong>unsubscribeToken</strong>: Unique token for the unsubscribe link</li>
-      </ul>
-      
-      <h2>Features:</h2>
-      <ul>
-        <li>Wraps content in professional email template</li>
-        <li>Appends donation footer with QR code</li>
-        <li>Applies consistent styling to all elements</li>
-        <li>Responsive design for all devices</li>
-        <li>Adds Vaguinhas branding</li>
-        <li>Converts company links to "Ver empresa"</li>
-        <li>Converts apply links to "Ver vaga" buttons</li>
-        <li>Includes unsubscribe link with unique token</li>
-      </ul>
+    <head><title>Email Formatting API</title></head>
+    <body>
+      <h1>Usage Instructions</h1>
+      <p>POST JSON: { html: string, unsubscribeToken: string }</p>
+      <p>Or POST HTML with token in header (X-Unsubscribe-Token) or query param (?token=)</p>
     </body>
     </html>
   `;
