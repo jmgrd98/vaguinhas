@@ -226,7 +226,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
         "{{UNSUBSCRIBE_LINK}}", 
-        `${baseUrl}/api/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+        `${baseUrl}/api/unsubscribe?email=${encodeURIComponent(unsubscribeToken)}`
       );
     } else {
       fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', `${baseUrl}/unsubscribe-success`);

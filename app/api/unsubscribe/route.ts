@@ -64,10 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Update unsubscribe
-    await db.collection("users").updateOne(
-      { _id: user._id },
-      { $set: { unsubscribed: true, unsubscribedAt: new Date() } }
-    );
+    await db.collection("users").deleteOne({ email: user.email });
 
     // Redirect to success
     return NextResponse.redirect(
