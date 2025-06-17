@@ -21,15 +21,15 @@ const transporter = createTransport({
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD,
   },
-  // tls: {
-  //   minVersion: "TLSv1.2",
-  //   ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-  //   rejectUnauthorized: true,
-  // },
-  // connectionTimeout: 10000, // 10 seconds
-  // socketTimeout: 10000, // 10 seconds
-  // logger: true, // Enable logging
-  // debug: true, // Enable debugging
+  tls: {
+    minVersion: "TLSv1.2",
+    ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
+    rejectUnauthorized: true,
+  },
+  connectionTimeout: 10000, // 10 seconds
+  socketTimeout: 10000, // 10 seconds
+  logger: true, // Enable logging
+  debug: true, // Enable debugging
 });
 
 
