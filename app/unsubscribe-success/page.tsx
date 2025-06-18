@@ -43,7 +43,12 @@ export default function UnsubscribeSuccess() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex flex-col gap-10 items-center justify-center bg-gray-50 px-4">
+      <p
+          className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}
+        >
+          vaguinhas
+        </p>
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
         <div className="mb-6">
           <div className="bg-green-100 rounded-full p-3 inline-flex">
