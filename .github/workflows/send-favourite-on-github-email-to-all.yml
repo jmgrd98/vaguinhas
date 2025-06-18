@@ -1,6 +1,7 @@
 name: Send Favourite On Github Email To All
 
 on:
+  workflow_dispatch:
   schedule:
 
     - cron: '0 16 * * 1,3'
