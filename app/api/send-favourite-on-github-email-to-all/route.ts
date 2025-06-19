@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { sendFavouriteOnGithubEmail } from "@/lib/email";
+import { sendFavouriteOnGithubEmail } from "@/lib/resend";
 import { getAllSubscribers } from "@/lib/mongodb";
 
 async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {

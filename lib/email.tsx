@@ -2,6 +2,8 @@ import { createTransport } from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
+import SupportUsEmail from '@/emails/support-us';
+import { render } from '@react-email/render';
 // import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
@@ -27,15 +29,7 @@ const transporter = createTransport({
   tls: {
     ciphers: 'SSLv3'
   }
-  // tls: {
-  //   minVersion: "TLSv1.2",
-  //   ciphers: "HIGH:!aNULL:!eNULL:!EXPORT:!DES:!RC4:!MD5:!PSK:!SRP:!CAMELLIA",
-  //   rejectUnauthorized: true,
-  // },
-  // connectionTimeout: 10000, // 10 seconds
-  // socketTimeout: 10000, // 10 seconds
-  // logger: true, // Enable logging
-  // debug: true, // Enable debugging
+
 });
 
 
@@ -43,7 +37,7 @@ const baseMailOptions = {
   from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
   attachments: [{
       filename: 'vaguinhas.png',
-      content: LOGO_BASE64!.split('base64,')[1],
+      content: Buffer.from(LOGO_BASE64!.split('base64,')[1], 'base64'),
       encoding: 'base64',
       cid: 'logo@vaguinhas'
     }],
@@ -52,7 +46,7 @@ const baseMailOptions = {
 const baseUrl = process.env.NEXTAUTH_URL;
 
 async function loadTemplate(templateName: string, replacements: Record<string, string>) {
-  const templatePath = path.join(process.cwd(), 'emails', `${templateName}.html`);
+  const templatePath = path.join(process.cwd(), 'emails', `${templateName}.tsx`);
   let content = await fs.readFile(templatePath, 'utf-8');
 
   Object.entries(replacements).forEach(([key, value]) => {
@@ -61,6 +55,7 @@ async function loadTemplate(templateName: string, replacements: Record<string, s
   
   return content;
 }
+
 
 export async function sendConfirmationEmail(email: string, token: string) {
 
@@ -106,30 +101,41 @@ export function generateConfirmationToken() {
 }
 
 export async function sendSupportUsEmail(email: string) {
-  const html = await loadTemplate("support-us", {
-    CURRENT_YEAR: new Date().getFullYear().toString(),
-  });
+  const currentYear = new Date().getFullYear().toString();
 
-  if (!LOGO_BASE64) {
-    throw new Error("VAGUINHAS_LOGO is not defined");
-  }
+  // Render the React component properly
+  const html = await render(
+    <SupportUsEmail 
+      currentYear={currentYear}
+      pixKey="vaguinhas@vaguinhas.com.br"
+      useCid={true}
+    />
+  );
 
-  const qrCodePath = path.join(process.cwd(), 'public', 'qrcode-pix.png');
-  const qrCodeBuffer = await fs.readFile(qrCodePath);
-  const qrCodeBase64 = qrCodeBuffer.toString('base64');
+  console.log('HTML', html)
+
+  // Read images from public directory
+  const publicDir = path.join(process.cwd(), 'public');
+  const [logoBuffer, qrCodeBuffer] = await Promise.all([
+    fs.readFile(path.join(publicDir, 'vaguinhas-logo.png')),
+    fs.readFile(path.join(publicDir, 'qrcode-pix.png'))
+  ]);
 
   const mailOptions = {
-    ...baseMailOptions,
+    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: "Nos ajude a continuar a enviar vaguinhas 🧡",
     html,
     attachments: [
-      ...baseMailOptions.attachments,
       {
-        filename: 'pixqrcode.png',
-        content: qrCodeBase64,
-        encoding: 'base64',
-        cid: 'pixqrcode@vaguinhas'
+        filename: 'vaguinhas-logo.png',
+        content: logoBuffer,
+        cid: 'logo@vaguinhas'
+      },
+      {
+        filename: 'qrcode-pix.png',
+        content: qrCodeBuffer,
+        cid: 'pixqrcode@vaguinhas' // Fixed CID to match template
       }
     ]
   };

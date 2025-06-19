@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "dev:email": "email dev"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.10",
@@ -16,6 +17,7 @@
     "@radix-ui/react-slot": "^1.2.2",
     "@radix-ui/react-switch": "^1.2.4",
     "@radix-ui/react-tooltip": "^1.2.6",
+    "@react-email/components": "0.1.0",
     "@sendgrid/mail": "^8.1.5",
     "@upstash/ratelimit": "^2.0.5",
     "@upstash/redis": "^1.35.0",
@@ -35,6 +37,7 @@
     "react-confetti": "^6.4.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
+    "resend": "^4.6.0",
     "sonner": "^2.0.3",
     "tailwind-merge": "^3.3.0",
     "vaul": "^1.1.2",
@@ -48,6 +51,7 @@
     "@types/nodemailer": "^6.4.17",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "react-email": "4.0.16",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
     "tailwindcss": "^4",
