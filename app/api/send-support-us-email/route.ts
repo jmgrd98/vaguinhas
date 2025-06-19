@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-// import { sendSupportUsEmail } from "@/lib/resend";
-import { sendSupportUsEmail } from "@/lib/email";
+import { sendSupportUsEmail } from "@/lib/resend";
+// import { sendSupportUsEmail } from "@/lib/email";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { z } from "zod";

@@ -4,12 +4,19 @@ import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
 
-// Initialize rate limiter
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(2, "86400 s"), // 2 requests per day
-  analytics: true,
-});
+// Initialize rate limiter only in production
+let ratelimit: Ratelimit | null = null;
+if (process.env.NODE_ENV === "production") {
+  try {
+    ratelimit = new Ratelimit({
+      redis: Redis.fromEnv(),
+      limiter: Ratelimit.slidingWindow(2, "86400 s"), // 2 requests per day
+      analytics: true,
+    });
+  } catch (error) {
+    console.error("Failed to initialize rate limiter:", error);
+  }
+}
 
 // Zod schema for validation
 const requestSchema = z.object({
@@ -32,19 +39,21 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { headers });
     }
 
-    // Rate limiting
-    const ip = request.headers.get("cf-connecting-ip") || 
-               request.headers.get("x-forwarded-for") || 
-               request.headers.get("x-real-ip") || 
-               "127.0.0.1";
-    
-    const { success } = await ratelimit.limit(ip);
-    
-    if (!success) {
-      return NextResponse.json(
-        { error: "Limite de solicitações excedido. Tente novamente amanhã." },
-        { status: 429, headers }
-      );
+    // Apply rate limiting ONLY in production
+    if (process.env.NODE_ENV === "production" && ratelimit) {
+      const ip = request.headers.get("cf-connecting-ip") || 
+                 request.headers.get("x-forwarded-for") || 
+                 request.headers.get("x-real-ip") || 
+                 "127.0.0.1";
+      
+      const { success } = await ratelimit.limit(ip);
+      
+      if (!success) {
+        return NextResponse.json(
+          { error: "Limite de solicitações excedido. Tente novamente amanhã." },
+          { status: 429, headers }
+        );
+      }
     }
 
     // Validate request body
@@ -80,9 +89,9 @@ export async function POST(request: NextRequest) {
 export async function OPTIONS() {
   return new NextResponse(null, {
     headers: {
-      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-        ? '*' 
-        : 'https://www.vaguinhas.com.br',
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+      ? '*' 
+      : 'https://www.vaguinhas.com.br',
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type'
     }

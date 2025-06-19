@@ -1,16 +1,11 @@
-import { Resend, Attachment } from 'resend';
+import { Resend } from 'resend';
 import { randomBytes } from 'crypto';
-// import path from 'path';
-import { readFile } from 'fs/promises';
 
-// Import React Email components
 import ConfirmationEmail from '@/emails/confirmation';
 import AdminNotificationEmail from '@/emails/admin-notification';
 import SupportUsEmail from '@/emails/support-us';
 import FavouriteGithubEmail from '@/emails/favourite-on-github';
 import ConfirmEmailReminderEmail from '@/emails/confirm-email-reminder';
-
-import path from 'path';
 
 // Initialize Resend
 if (!process.env.RESEND_API_KEY) {
@@ -73,58 +68,11 @@ export async function sendAdminNotification(userEmail: string) {
 export async function sendSupportUsEmail(email: string) {
   const currentYear = new Date().getFullYear().toString();
   
-  // Use base64 locally, URLs in production
-  const attachments: Attachment[] = [];
 //   const baseURL = process.env.NODE_ENV === 'production'
 //     ? process.env.NEXTAUTH_URL || 'https://www.vaguinhas.com.br'
 //     : 'http://localhost:3000';
 
-  if (process.env.NODE_ENV === 'production') {
-    // Production: Use remote URLs
-    attachments.push(
-      {
-        filename: 'vaguinhas-logo.png',
-        // url: `${baseURL}/vaguinhas-logo.png`,
-        // content_id: 'logo',
-        // disposition: 'inline',
-      },
-      {
-        filename: 'qrcode-pix.png',
-        // url: `${baseURL}/qrcode-pix.png`,
-        // content_id: 'pixqrcode',
-        // disposition: 'inline',
-      }
-    );
-  } else {
-    // Development: Use base64
-    try {
-      const publicDir = path.join(process.cwd(), 'public');
-      const [logoBuffer, qrBuffer] = await Promise.all([
-        readFile(path.join(publicDir, 'vaguinhas-logo.png')),
-        readFile(path.join(publicDir, 'qrcode-pix.png'))
-      ]);
 
-      attachments.push(
-        {
-          filename: 'vaguinhas-logo.png',
-          content: logoBuffer.toString('base64'),
-        //   content_id: 'logo',
-        //   encoding: 'base64',
-        //   disposition: 'inline',
-        },
-        {
-          filename: 'qrcode-pix.png',
-          content: qrBuffer.toString('base64'),
-        //   content_id: 'pixqrcode',
-        //   encoding: 'base64',
-        //   disposition: 'inline',
-        }
-      );
-    } catch (error) {
-      console.error('Failed to read local images:', error);
-      throw error;
-    }
-  }
 
   return await resend.emails.send({
     from: DEFAULT_FROM,
@@ -135,7 +83,6 @@ export async function sendSupportUsEmail(email: string) {
       pixKey: 'vaguinhas@vaguinhas.com.br',
       useCid: true
     }),
-    attachments,
   });
 }
 

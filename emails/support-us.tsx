@@ -22,7 +22,6 @@ interface SupportUsEmailProps {
 const SupportUsEmail: React.FC<SupportUsEmailProps> = ({ 
   currentYear,
   pixKey = 'vaguinhas@vaguinhas.com.br',
-  useCid = false
 }) => {
 
     return (
@@ -34,7 +33,7 @@ const SupportUsEmail: React.FC<SupportUsEmailProps> = ({
           {/* Logo Section */}
           <Section style={logoSectionStyle}>
            <Img
-              src={useCid ? 'cid:logo@vaguinhas' : 'https://www.vaguinhas.com.br/vaguinhas-logo.png'}
+              src={'https://www.vaguinhas.com.br/vaguinhas-logo.png'}
               // src={`${baseURL}/public/static/vaguinhas-logo.png`}
               alt="vaguinhas logo"
               width="200"
@@ -59,7 +58,7 @@ const SupportUsEmail: React.FC<SupportUsEmailProps> = ({
               Escaneie este QR Code para fazer uma doação via PIX:
             </Text>
             <Img
-              src={useCid ? 'cid:pixqrcode@vaguinhas' : 'https://www.vaguinhas.com.br/qrcode-pix.png'}
+              src={'https://www.vaguinhas.com.br/qrcode-pix.png'}
               // src={`${baseURL}/public/static/qrcode-pix.png`}
               alt="QR Code PIX"
               width="180"
