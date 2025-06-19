@@ -1,13 +1,9 @@
 import { NextResponse, NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
-import {
-  sendConfirmationEmail,
-  sendAdminNotification,
-  generateConfirmationToken,
-} from "@/lib/email";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({

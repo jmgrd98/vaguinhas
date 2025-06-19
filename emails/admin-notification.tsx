@@ -9,20 +9,43 @@ import {
   Heading,
   Text,
   Hr,
+  Img,
 } from '@react-email/components';
 
 interface AdminNotificationEmailProps {
   userEmail: string;
   currentYear: string | number;
+  baseURL?: string;
+  useCid?: boolean;
 }
 
-const AdminNotificationEmail: React.FC<AdminNotificationEmailProps> = ({ userEmail, currentYear }) => {
+const AdminNotificationEmail: React.FC<AdminNotificationEmailProps> = ({
+  userEmail,
+  currentYear,
+  baseURL = 'https://www.vaguinhas.com.br',
+  useCid = false,
+}) => {
+  const logoSrc = useCid
+    ? 'cid:logo@vaguinhas'
+    : `${baseURL}/vaguinhas-logo.png`;
+
   return (
     <Html>
       <Head />
       <Preview>Novo cadastro realizado!</Preview>
       <Body style={mainStyle}>
         <Container style={containerStyle}>
+          {/* Logo Section */}
+          <Section style={logoSectionStyle}>
+            <Img
+              src={logoSrc}
+              alt="vaguinhas logo"
+              width="200"
+              style={logoStyle}
+            />
+          </Section>
+
+          {/* Notification Content */}
           <Section style={sectionStyle}>
             <Heading style={headingStyle}>Novo cadastro realizado!</Heading>
             <Text style={textStyle}>
@@ -53,6 +76,20 @@ const containerStyle: React.CSSProperties = {
   padding: '20px',
 };
 
+const logoSectionStyle: React.CSSProperties = {
+  padding: '20px 0',
+  textAlign: 'center',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+};
+
+const logoStyle: React.CSSProperties = {
+  height: 'auto',
+  width: '200px',
+  maxWidth: '100%',
+};
+
 const sectionStyle: React.CSSProperties = {
   margin: '0',
   padding: '0',
@@ -76,6 +113,7 @@ const emailBoxStyle: React.CSSProperties = {
   padding: '10px',
   borderRadius: '5px',
   wordBreak: 'break-all',
+  marginTop: '10px',
 };
 
 const hrStyle: React.CSSProperties = {

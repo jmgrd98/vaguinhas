@@ -1,6 +1,6 @@
 // app/api/support/send-all/route.ts
 import { NextResponse, NextRequest } from "next/server";
-import { sendSupportUsEmail } from "@/lib/email";
+import { sendSupportUsEmail } from "@/lib/resend";
 import { getAllSubscribers } from "@/lib/mongodb";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";

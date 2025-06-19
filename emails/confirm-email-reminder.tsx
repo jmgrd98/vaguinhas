@@ -15,9 +15,20 @@ import {
 interface ConfirmEmailNotificationEmailProps {
   confirmationLink: string;
   currentYear: string | number;
+  baseURL?: string;
+  useCid?: boolean;
 }
 
-const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps> = ({ confirmationLink, currentYear }) => {
+const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps> = ({
+  confirmationLink,
+  currentYear,
+  baseURL = 'https://www.vaguinhas.com.br',
+  useCid = false,
+}) => {
+  const logoSrc = useCid
+    ? 'cid:logo@vaguinhas'
+    : `${baseURL}/vaguinhas-logo.png`;
+
   return (
     <Html>
       <Head />
@@ -27,7 +38,7 @@ const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps
           {/* Logo section */}
           <Section style={logoSectionStyle}>
             <Img
-              src="cid:logo@vaguinhas"
+              src={logoSrc}
               alt="vaguinhas logo"
               width="200"
               style={logoStyle}
@@ -49,7 +60,12 @@ const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps
 
             <Text style={textStyle}>
               Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no{' '}
-              <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
+              <a
+                href="https://linkedin.com/in/joao-marcelo-dantas"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
                 LinkedIn
               </a>{' '}
               para levar uma ideia! 😊
@@ -83,6 +99,9 @@ const containerStyle: React.CSSProperties = {
 const logoSectionStyle: React.CSSProperties = {
   padding: '20px 0',
   textAlign: 'center',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
 };
 
 const logoStyle: React.CSSProperties = {

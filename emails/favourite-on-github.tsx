@@ -14,19 +14,23 @@ import {
 
 interface FavoriteGithubEmailProps {
   currentYear: string | number;
+  useCid?: boolean; // Add useCid prop
 }
 
-const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({ currentYear }) => {
+const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({ 
+  currentYear,
+  useCid = false // Default to false
+}) => {
   return (
     <Html>
       <Head />
       <Preview>Favorite-nos no GitHub!</Preview>
       <Body style={mainStyle}>
         <Container style={containerStyle}>
-          {/* Logo Section */}
+          {/* Logo Section - Updated with conditional source */}
           <Section style={logoSectionStyle}>
             <Img
-              src="cid:logo@vaguinhas"
+              src={useCid ? "cid:logo@vaguinhas" : "https://www.vaguinhas.com.br/vaguinhas-logo.png"}
               alt="vaguinhas logo"
               width="200"
               style={logoStyle}
@@ -68,7 +72,7 @@ const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({ currentYear }
   );
 };
 
-// Styles
+// Styles remain the same
 const mainStyle: React.CSSProperties = {
   backgroundColor: '#ffffff',
   margin: '0',
@@ -86,6 +90,9 @@ const containerStyle: React.CSSProperties = {
 const logoSectionStyle: React.CSSProperties = {
   padding: '20px 0',
   textAlign: 'center',
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
 };
 
 const logoStyle: React.CSSProperties = {

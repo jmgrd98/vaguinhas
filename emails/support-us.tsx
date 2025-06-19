@@ -15,17 +15,15 @@ import {
 interface SupportUsEmailProps {
   currentYear: string | number;
   pixKey?: string;
+  baseURL?: string;
+  useCid?: boolean;
 }
 
 const SupportUsEmail: React.FC<SupportUsEmailProps> = ({ 
   currentYear,
   pixKey = 'vaguinhas@vaguinhas.com.br',
-  // pixQrCid = 'pixqrcode@vaguinhas'
+  useCid = false
 }) => {
-  const baseURL = process.env.NODE_ENV === 'production' 
-    ? 'https://www.vaguinhas.com.br'  // Replace with your actual domain
-    : 'http://localhost:3000';
-  
 
     return (
     <Html>
@@ -35,8 +33,9 @@ const SupportUsEmail: React.FC<SupportUsEmailProps> = ({
         <Container style={containerStyle}>
           {/* Logo Section */}
           <Section style={logoSectionStyle}>
-            <Img
-              src={`${baseURL}/vaguinhas-logo.png`}
+           <Img
+              src={useCid ? 'cid:logo@vaguinhas' : 'https://www.vaguinhas.com.br/vaguinhas-logo.png'}
+              // src={`${baseURL}/public/static/vaguinhas-logo.png`}
               alt="vaguinhas logo"
               width="200"
               style={logoStyle}
@@ -60,7 +59,8 @@ const SupportUsEmail: React.FC<SupportUsEmailProps> = ({
               Escaneie este QR Code para fazer uma doação via PIX:
             </Text>
             <Img
-              src={`${baseURL}/qrcode-pix.png`}
+              src={useCid ? 'cid:pixqrcode@vaguinhas' : 'https://www.vaguinhas.com.br/qrcode-pix.png'}
+              // src={`${baseURL}/public/static/qrcode-pix.png`}
               alt="QR Code PIX"
               width="180"
               height="180"
