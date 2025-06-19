@@ -112,8 +112,6 @@ export async function sendSupportUsEmail(email: string) {
     />
   );
 
-  console.log('HTML', html)
-
   // Read images from public directory
   const publicDir = path.join(process.cwd(), 'public');
   const [logoBuffer, qrCodeBuffer] = await Promise.all([
