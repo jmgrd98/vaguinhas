@@ -100,10 +100,10 @@ export default function Home() {
     if (!validateEmail()) return;
     setStatus("loading");
 
-    const mappedSeniority =
-      seniorityLevel === "junior"
-        ? ["Entry level", "Internship"]
-        : ["Mid-Senior level", "Associate"];
+    // const mappedSeniority =
+    //   seniorityLevel === "junior"
+    //     ? ["Entry level", "Internship"]
+    //     : ["Mid-Senior level", "Associate"];
 
     try {
       const res = await fetch("/api/subscribe", {
@@ -114,7 +114,7 @@ export default function Home() {
          },
         body: JSON.stringify({
           email,
-          seniorityLevel: mappedSeniority,
+          seniorityLevel,
         }),
       });
 
