@@ -100,10 +100,6 @@ export default function Home() {
     if (!validateEmail()) return;
     setStatus("loading");
 
-    // const mappedSeniority =
-    //   seniorityLevel === "junior"
-    //     ? ["Entry level", "Internship"]
-    //     : ["Mid-Senior level", "Associate"];
 
     try {
       const res = await fetch("/api/subscribe", {
@@ -317,7 +313,7 @@ export default function Home() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="junior">Júnior</SelectItem>
-              <SelectItem value="mid-level">Pleno</SelectItem>
+              <SelectItem value="pleno">Pleno</SelectItem>
               <SelectItem value="senior">Sênior</SelectItem>
             </SelectContent>
           </Select>
