@@ -52,7 +52,7 @@ const baseMailOptions = {
 const baseUrl = process.env.NEXTAUTH_URL;
 
 async function loadTemplate(templateName: string, replacements: Record<string, string>) {
-  const templatePath = path.join(process.cwd(), 'emails', `${templateName}.html`);
+  const templatePath = path.join(process.cwd(), 'emails', `${templateName}.tsx`);
   let content = await fs.readFile(templatePath, 'utf-8');
 
   Object.entries(replacements).forEach(([key, value]) => {
