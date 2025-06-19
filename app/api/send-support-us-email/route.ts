@@ -11,7 +11,7 @@ if (process.env.NODE_ENV === "production") {
   try {
     ratelimit = new Ratelimit({
       redis: Redis.fromEnv(),
-      limiter: Ratelimit.slidingWindow(2, "86400 s"), // 2 requests per day
+      limiter: Ratelimit.slidingWindow(5, "86400 s"), // 2 requests per day
       analytics: true,
     });
   } catch (error) {
