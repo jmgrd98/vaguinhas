@@ -8,7 +8,7 @@ import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
   email: emailSchema,
-  seniorityLevel: z.array(z.string().max(50)).max(5),
+  seniorityLevel: z.string().min(1).max(50),
 });
 
 // Initialize rate limiter
