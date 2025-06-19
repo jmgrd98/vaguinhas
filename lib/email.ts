@@ -43,7 +43,7 @@ const baseMailOptions = {
   from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
   attachments: [{
       filename: 'vaguinhas.png',
-      content: LOGO_BASE64!.split('base64,')[1],
+      content: Buffer.from(LOGO_BASE64!.split('base64,')[1], 'base64'),
       encoding: 'base64',
       cid: 'logo@vaguinhas'
     }],
@@ -116,8 +116,7 @@ export async function sendSupportUsEmail(email: string) {
 
   const qrCodePath = path.join(process.cwd(), 'public', 'qrcode-pix.png');
   const qrCodeBuffer = await fs.readFile(qrCodePath);
-  const qrCodeBase64 = qrCodeBuffer.toString('base64');
-
+  
   const mailOptions = {
     ...baseMailOptions,
     to: email,
@@ -127,8 +126,8 @@ export async function sendSupportUsEmail(email: string) {
       ...baseMailOptions.attachments,
       {
         filename: 'pixqrcode.png',
-        content: qrCodeBase64,
-        encoding: 'base64',
+        content: qrCodeBuffer, // Use buffer directly
+        encoding: 'base64',    // Still needs encoding
         cid: 'pixqrcode@vaguinhas'
       }
     ]
