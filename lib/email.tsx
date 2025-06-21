@@ -4,6 +4,7 @@ import path from 'path';
 import { randomBytes } from 'crypto';
 import SupportUsEmail from '@/emails/support-us';
 import { render } from '@react-email/render';
+import FeedbackEmail from '@/emails/feedback';
 // import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
@@ -98,6 +99,26 @@ export async function sendAdminNotification(email: string) {
 
 export function generateConfirmationToken() {
   return randomBytes(32).toString('hex');
+}
+
+export async function sendFeedbackEmail(email: string) {
+  const currentYear = new Date().getFullYear().toString();
+
+  const html = await render(
+    <FeedbackEmail 
+      currentYear={currentYear}
+      useCid
+    />
+  );
+  
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Nos ajude a melhorar 🧡",
+    html
+  };
+
+  return transporter.sendMail(mailOptions);
 }
 
 export async function sendSupportUsEmail(email: string) {
