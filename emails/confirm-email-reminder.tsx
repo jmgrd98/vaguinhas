@@ -22,13 +22,8 @@ interface ConfirmEmailNotificationEmailProps {
 const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps> = ({
   confirmationLink,
   currentYear,
-  baseURL = 'https://www.vaguinhas.com.br',
   useCid = false,
 }) => {
-  const logoSrc = useCid
-    ? 'cid:logo@vaguinhas'
-    : `${baseURL}/vaguinhas-logo.png`;
-
   return (
     <Html>
       <Head />
@@ -38,7 +33,7 @@ const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps
           {/* Logo section */}
           <Section style={logoSectionStyle}>
             <Img
-              src={logoSrc}
+              src={useCid ? "cid:logo@vaguinhas" : "https://www.vaguinhas.com.br/vaguinhas-logo.png"}
               alt="vaguinhas logo"
               width="200"
               style={logoStyle}
