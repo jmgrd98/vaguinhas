@@ -22,12 +22,8 @@ interface AdminNotificationEmailProps {
 const AdminNotificationEmail: React.FC<AdminNotificationEmailProps> = ({
   userEmail,
   currentYear,
-  baseURL = 'https://www.vaguinhas.com.br',
   useCid = false,
 }) => {
-  const logoSrc = useCid
-    ? 'cid:logo@vaguinhas'
-    : `${baseURL}/vaguinhas-logo.png`;
 
   return (
     <Html>
@@ -38,7 +34,7 @@ const AdminNotificationEmail: React.FC<AdminNotificationEmailProps> = ({
           {/* Logo Section */}
           <Section style={logoSectionStyle}>
             <Img
-              src={logoSrc}
+              src={useCid ? "cid:logo@vaguinhas" : "https://www.vaguinhas.com.br/vaguinhas-logo.png"}
               alt="vaguinhas logo"
               width="200"
               style={logoStyle}

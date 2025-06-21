@@ -33,6 +33,7 @@ const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 export default function Home() {
   const [email, setEmail] = useState("");
   const [seniorityLevel, setSeniorityLevel] = useState("");
+  const [stack, setStack] = useState("");
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
@@ -111,6 +112,7 @@ export default function Home() {
         body: JSON.stringify({
           email,
           seniorityLevel,
+          stack
         }),
       });
 
@@ -133,6 +135,7 @@ export default function Home() {
         setShowConfetti(true);
         setEmail("");
         setSeniorityLevel("");
+        setStack("");
       }
 
       if (res.status === 409) {
@@ -287,8 +290,8 @@ export default function Home() {
         >
           vaguinhas
         </p>
-        <div className="flex flex-col gap-5   items-center w-full max-w-[1200px] mt-8 ">
-          <p className="mb-2 text-lg sm:text-xl font-bold text-center">
+        <div className="flex flex-col gap-3 items-center w-full max-w-[1200px] mt-8 ">
+          <p className="mb-2 text-lg sm:text-xl font-bold text-center mb-2">
             Insira seu e-mail para receber vaguinhas em tecnologia todos os
             dias na sua caixa de entrada! 😊
           </p>
@@ -302,6 +305,24 @@ export default function Home() {
             onChange={(e) => setEmail(e.currentTarget.value)}
             className="w-full"
           />
+
+
+          <Select
+            value={stack}
+            onValueChange={setStack}
+            required
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Selecione sua área" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="frontend">Frontend</SelectItem>
+              <SelectItem value="backend">Backend</SelectItem>
+              <SelectItem value="devops">DevOps</SelectItem>
+              <SelectItem value="dados">Dados</SelectItem>
+              <SelectItem value="design">Designer UI/UX</SelectItem>
+            </SelectContent>
+          </Select>
 
           <Select
             value={seniorityLevel}

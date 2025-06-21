@@ -9,6 +9,7 @@ const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
   email: emailSchema,
   seniorityLevel: z.string().min(1).max(50),
+  stack: z.string().min(1).max(50),
 });
 
 // Initialize rate limiter
@@ -63,7 +64,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     
-    const { email: normalizedEmail, seniorityLevel } = validation.data;
+    const { email: normalizedEmail, seniorityLevel, stack } = validation.data;
 
     // Database operations
     const { db } = await connectToDatabase();
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
-      stacks: [],
+      stacks: [stack],
       createdAt: new Date(),
       confirmed: false,
       confirmationToken,
