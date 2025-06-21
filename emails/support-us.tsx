@@ -78,8 +78,8 @@ const SupportUsEmail: React.FC<SupportUsEmailProps> = ({
           {/* Footer and Contact */}
           <Section style={sectionStyle}>
             <Text style={textStyle}>
-              Se você gostou das vaguinhas ou se possui alguma dúvita, sinta-se livre para me chamar no{' '}
-              <a href="https://linkedin.com/in/joao-marcelo-dantas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
+              Se você gostou das vaguinhas ou se possui alguma dúvita, sinta-se livre para nos chamar no{' '}
+              <a href="https://linkedin.com/company/vaguinhas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
                 LinkedIn
               </a>{' '}
               para levar uma ideia! 😊

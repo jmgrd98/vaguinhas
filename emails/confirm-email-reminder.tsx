@@ -59,9 +59,9 @@ const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps
             </Text>
 
             <Text style={textStyle}>
-              Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para me chamar no{' '}
+              Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para nos chamar no{' '}
               <a
-                href="https://linkedin.com/in/joao-marcelo-dantas"
+                href="https://linkedin.com/company/vaguinhas"
                 target="_blank"
                 rel="noopener noreferrer"
                 style={linkStyle}
