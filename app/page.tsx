@@ -49,6 +49,7 @@ export default function Home() {
 
   const [isAccessingSubscriberArea, setIsAccessingSubscriberArea] = useState(false);
   const [accessEmail, setAccessEmail] = useState("");
+  const [accessPassword, setAccessPassword] = useState("");
   const router = useRouter();
 
   useEffect(() => {
@@ -386,6 +387,13 @@ export default function Home() {
                 placeholder="Insira seu e-mail cadastrado"
                 value={accessEmail}
                 onChange={(e) => setAccessEmail(e.target.value)}
+                className="w-full"
+              />
+              <Input 
+                type="password"
+                placeholder="Insira sua senha"
+                value={accessPassword}
+                onChange={(e) => setAccessPassword(e.target.value)}
                 className="w-full"
               />
               <div className="flex flex-col gap-2">

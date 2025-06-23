@@ -4,18 +4,18 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 
-// Define the schema for the update
 const updateSchema = z.object({
   seniorityLevel: z.string().min(1, "Seniority level is required"),
   stacks: z.array(z.string()).min(1, "At least one stack is required"),
 });
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params; // Destructure here
+
   try {
     const { db } = await connectToDatabase();
     
-    // Validate ID format
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id)) { // Use destructured 'id'
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     }
 
     const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(params.id) 
+      _id: new ObjectId(id) // Use destructured 'id'
     });
 
     if (!user) {
@@ -33,7 +33,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
       );
     }
 
-    // Return user data without sensitive fields
     const { _id, email, seniorityLevel, stacks, confirmed, createdAt } = user;
     return NextResponse.json({
       _id: _id.toString(),
@@ -54,18 +53,18 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params; // Destructure here
+
   try {
     const { db } = await connectToDatabase();
     
-    // Validate ID format
-    if (!ObjectId.isValid(params.id)) {
+    if (!ObjectId.isValid(id)) { // Use destructured 'id'
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
       );
     }
 
-    // Parse and validate request body
     const body = await req.json();
     const validation = updateSchema.safeParse(body);
     
@@ -81,9 +80,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 
     const { seniorityLevel, stacks } = validation.data;
 
-    // Update user in database
     const result = await db.collection("users").updateOne(
-      { _id: new ObjectId(params.id) },
+      { _id: new ObjectId(id) },
       { $set: { seniorityLevel, stacks } }
     );
 
