@@ -9,8 +9,11 @@ const updateSchema = z.object({
   stacks: z.array(z.string()).min(1, "At least one stack is required"),
 });
 
-export async function GET(req: NextRequest, params: { params: { id: string } }) {
-  const { params: { id } } = params;
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
   try {
     const { db } = await connectToDatabase();
@@ -52,8 +55,11 @@ export async function GET(req: NextRequest, params: { params: { id: string } }) 
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { id } = params; // Destructure here
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
 
   try {
     const { db } = await connectToDatabase();

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -24,7 +24,8 @@ interface UserData {
   createdAt: string;
 }
 
-export default function SubscriberPage({ params }: { params: { id: string } }) {
+export default function SubscriberPage() {
+  const { id } = useParams();
   const router = useRouter();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,7 +39,7 @@ export default function SubscriberPage({ params }: { params: { id: string } }) {
     const fetchUserData = async () => {
       try {
         setLoading(true);
-        const res = await fetch(`/api/users/${params.id}`);
+        const res = await fetch(`/api/users/${id}`);
         
         if (!res.ok) {
           throw new Error("Failed to fetch user data");
@@ -59,12 +60,12 @@ export default function SubscriberPage({ params }: { params: { id: string } }) {
     };
 
     fetchUserData();
-  }, [params.id]);
+  }, [id]);
 
   const handleUpdate = async () => {
     try {
       setUpdating(true);
-      const res = await fetch(`/api/users/${params.id}`, {
+      const res = await fetch(`/api/users/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

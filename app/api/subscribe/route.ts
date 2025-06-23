@@ -1,151 +1,114 @@
-import { NextResponse, NextRequest } from "next/server";
+// app/api/users/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
+import { ObjectId } from "mongodb";
 import { z } from "zod";
-import { Ratelimit } from "@upstash/ratelimit";
-import { Redis } from "@upstash/redis";
-import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
 
-const emailSchema = z.string().email().transform(email => email.toLowerCase());
-const requestSchema = z.object({
-  email: emailSchema,
-  seniorityLevel: z.string().min(1).max(50),
+const updateSchema = z.object({
+  seniorityLevel: z.string().min(1, "Seniority level is required"),
+  stacks: z.array(z.string()).min(1, "At least one stack is required"),
 });
 
-// Initialize rate limiter
-const ratelimit = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, "60 s"),
-  analytics: true,
-});
-
-// Function to generate random password
-const generateRandomPassword = () => {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-};
-
-export async function POST(req: NextRequest): Promise<NextResponse> {
-  // CORS headers configuration
-  const headers = {
-    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-      ? '*' 
-      : 'https://www.vaguinhas.com.br',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
-
+// Corrected GET function signature
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
   try {
-    // Handle OPTIONS requests
-    if (req.method === 'OPTIONS') {
-      return new NextResponse(null, { headers });
-    }
-
-    // Rate limiting
-    const ip = req.headers.get("cf-connecting-ip") || 
-               req.headers.get("x-forwarded-for") || 
-               req.headers.get("x-real-ip") || 
-               "127.0.0.1";
-    
-    const { success } = await ratelimit.limit(ip);
-    
-    if (!success) {
-      return NextResponse.json(
-        { message: "Too many requests. Please try again later." },
-        { status: 429, headers }
-      );
-    }
-
-    // Validate request body
-    const body = await req.json();
-    const validation = requestSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          message: "Invalid request", 
-          errors: validation.error.errors 
-        },
-        { status: 400, headers }
-      );
-    }
-    
-    const { email: normalizedEmail, seniorityLevel } = validation.data;
-
-    // Database operations
     const { db } = await connectToDatabase();
-    const existing = await db.collection("users").findOne({ email: normalizedEmail });
     
-    if (existing) {
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
-        { message: "This email is already registered" },
-        { status: 409, headers }
+        { message: "Invalid user ID format" },
+        { status: 400 }
       );
     }
 
-    // Generate random password
-    const password = generateRandomPassword();
-
-    // Generate confirmation token
-    const confirmationToken = generateConfirmationToken();
-    const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    
-    // Insert new user with password
-    const insertResult = await db.collection("users").insertOne({
-      email: normalizedEmail,
-      password, // Store plain text password
-      seniorityLevel,
-      stacks: [],
-      createdAt: new Date(),
-      confirmed: false,
-      confirmationToken,
-      confirmationExpires,
+    const user = await db.collection("users").findOne({ 
+      _id: new ObjectId(id)
     });
 
-    try {
-      // Send confirmation email with password (if needed)
-      await sendConfirmationEmail(normalizedEmail, confirmationToken, password);
-    } catch (error) {
-      // Rollback on email failure
-      await db.collection("users").deleteOne({ _id: insertResult.insertedId });
-      console.error("Email sending error:", error);
-      
+    if (!user) {
       return NextResponse.json(
-        { message: "Failed to send confirmation email" },
-        { status: 500, headers }
+        { message: "User not found" },
+        { status: 404 }
       );
     }
 
-    sendAdminNotification(normalizedEmail).catch(error => 
-      console.error("Admin notification failed:", error)
-    );
-
-    // In development, return password for testing purposes
-    const responseData: {message: string; generatedPassword?: string} = { message: "Email saved and confirmation sent!" };
-    if (process.env.NODE_ENV === 'development') {
-      responseData.generatedPassword = password;
-    }
-
-    return NextResponse.json(responseData, { status: 201, headers });
-  } catch (error) {
-    console.error("Server error:", error);
-    const errorMessage = error instanceof Error 
-      ? error.message 
-      : "Internal server error";
+    const { _id, email, seniorityLevel, stacks, confirmed, createdAt } = user;
+    return NextResponse.json({
+      _id: _id.toString(),
+      email,
+      seniorityLevel,
+      stacks,
+      confirmed,
+      createdAt
+    }, { status: 200 });
     
+  } catch (error) {
+    console.error("Error fetching user:", error);
     return NextResponse.json(
-      { message: errorMessage },
+      { message: "Internal server error" },
       { status: 500 }
     );
   }
 }
 
-export async function GET() {
-  return NextResponse.json(
-    { message: "Method not allowed" },
-    { status: 405 }
-  );
+// PUT function remains unchanged
+export async function PUT(
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  try {
+    const { db } = await connectToDatabase();
+    
+    if (!ObjectId.isValid(id)) {
+      return NextResponse.json(
+        { message: "Invalid user ID format" },
+        { status: 400 }
+      );
+    }
+
+    const body = await req.json();
+    const validation = updateSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return NextResponse.json(
+        { 
+          message: "Validation error",
+          errors: validation.error.errors 
+        },
+        { status: 400 }
+      );
+    }
+
+    const { seniorityLevel, stacks } = validation.data;
+
+    const result = await db.collection("users").updateOne(
+      { _id: new ObjectId(id) },
+      { $set: { seniorityLevel, stacks } }
+    );
+
+    if (result.matchedCount === 0) {
+      return NextResponse.json(
+        { message: "User not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { message: "User preferences updated successfully" },
+      { status: 200 }
+    );
+    
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return NextResponse.json(
+      { message: "Internal server error" },
+      { status: 500 }
+    );
+  }
 }
