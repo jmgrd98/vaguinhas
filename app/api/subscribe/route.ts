@@ -18,6 +18,16 @@ const ratelimit = new Ratelimit({
   analytics: true,
 });
 
+// Function to generate random password
+const generateRandomPassword = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+  let password = '';
+  for (let i = 0; i < 12; i++) {
+    password += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return password;
+};
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // CORS headers configuration
   const headers = {
@@ -76,13 +86,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
+    // Generate random password
+    const password = generateRandomPassword();
+
     // Generate confirmation token
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     
-    // Insert new user
+    // Insert new user with password
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
+      password, // Store plain text password
       seniorityLevel,
       stacks: [],
       createdAt: new Date(),
@@ -92,8 +106,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     try {
-      // Send confirmation email
-      await sendConfirmationEmail(normalizedEmail, confirmationToken);
+      // Send confirmation email with password (if needed)
+      await sendConfirmationEmail(normalizedEmail, confirmationToken, password);
     } catch (error) {
       // Rollback on email failure
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });
@@ -105,15 +119,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
 
-    // Send admin notification (fire-and-forget)
     sendAdminNotification(normalizedEmail).catch(error => 
       console.error("Admin notification failed:", error)
     );
 
-    return NextResponse.json(
-      { message: "Email saved and confirmation sent!" },
-      { status: 201, headers }
-    );
+    // In development, return password for testing purposes
+    const responseData: {message: string; generatedPassword?: string} = { message: "Email saved and confirmation sent!" };
+    if (process.env.NODE_ENV === 'development') {
+      responseData.generatedPassword = password;
+    }
+
+    return NextResponse.json(responseData, { status: 201, headers });
   } catch (error) {
     console.error("Server error:", error);
     const errorMessage = error instanceof Error 

@@ -30,7 +30,7 @@ export function generateConfirmationToken() {
 }
 
 // 1. Send confirmation email
-export async function sendConfirmationEmail(email: string, token: string) {
+export async function sendConfirmationEmail(email: string, token: string, password?: string) {
   const confirmationLink = `${process.env.NEXTAUTH_URL}/confirm-email?token=${token}`;
   const currentYear = new Date().getFullYear().toString();
   
@@ -41,7 +41,8 @@ export async function sendConfirmationEmail(email: string, token: string) {
     react: await ConfirmationEmail({ 
       confirmationLink, 
       currentYear,
-      baseURL
+      baseURL,
+      password
     }),
   });
 }

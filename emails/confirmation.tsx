@@ -17,6 +17,7 @@ interface ConfirmationEmailProps {
   currentYear: string | number;
   baseURL?: string;
   useCid?: boolean;
+  password?: string;
 }
 
 const ConfirmationEmail: React.FC<ConfirmationEmailProps> = ({
@@ -24,6 +25,7 @@ const ConfirmationEmail: React.FC<ConfirmationEmailProps> = ({
   currentYear,
   baseURL = 'https://www.vaguinhas.com.br',
   useCid = false,
+  password
 }) => {
   const logoSrc = useCid
     ? 'cid:logo@vaguinhas'
@@ -58,6 +60,9 @@ const ConfirmationEmail: React.FC<ConfirmationEmailProps> = ({
             </Text>
             <Text style={textStyle}>
               Você receberá vaguinhas de tecnologia nesse e-mail diariamente. 😊
+            </Text>
+            <Text style={textStyle}>
+              Sua senha para acessar a área de assinante é: {password}
             </Text>
             <Text style={textStyle}>
               Se você possui alguma dúvida, sinta-se livre para responder a este e-mail que nós iremos lhe ajudar!
