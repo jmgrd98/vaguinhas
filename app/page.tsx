@@ -26,7 +26,8 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -45,6 +46,10 @@ export default function Home() {
     width: typeof window !== "undefined" ? window.innerWidth : 0,
     height: typeof window !== "undefined" ? window.innerHeight : 0,
   });
+
+  const [isAccessingSubscriberArea, setIsAccessingSubscriberArea] = useState(false);
+  const [accessEmail, setAccessEmail] = useState("");
+  const router = useRouter();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -79,27 +84,35 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [cooldown]);
 
-  const validateEmail = () => {
-    try {
-      emailSchema.safeParse(email);
-      setValidationError(null);
+  // Fixed email validation function
+  const validateEmail = (emailToValidate: string): boolean => {
+    const result = emailSchema.safeParse(emailToValidate);
+    if (result.success) {
       return true;
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        setValidationError(error.errors[0].message);
-      }
-      return false;
     }
+    return false;
   };
 
+  // Email validation effect
   useEffect(() => {
-    if (email) validateEmail();
+    if (email) {
+      const isValid = validateEmail(email);
+      if (!isValid) {
+        setValidationError("E-mail inválido");
+      } else {
+        setValidationError(null);
+      }
+    } else {
+      setValidationError(null);
+    }
   }, [email]);
 
   const saveEmail = async () => {
-    if (!validateEmail()) return;
+    if (!validateEmail(email)) {
+      setValidationError("E-mail inválido");
+      return;
+    }
     setStatus("loading");
-
 
     try {
       const res = await fetch("/api/subscribe", {
@@ -251,6 +264,33 @@ export default function Home() {
     }
   };
 
+  const handleSubscriberAccess = async () => {
+    if (!validateEmail(accessEmail)) {
+      toast.error("Por favor, insira um e-mail válido");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/find-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: accessEmail }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        router.push(`/assinante/${data.userId}`);
+      } else if (res.status === 404) {
+        toast.error("E-mail não encontrado. Por favor, verifique ou cadastre-se.");
+      } else {
+        throw new Error("Erro ao buscar usuário");
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      toast.error("Erro ao acessar área do assinante");
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {showConfetti && (
@@ -263,31 +303,29 @@ export default function Home() {
         />
       )}
 
-       <div className="absolute top-4 right-4 z-50">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                href="https://github.com/jmgrd98/vaguinhas"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-black dark:text-white hover:text-blue-500 transition-colors"
-              >
-                <FaGithub size={24} />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent side="left" align="end" className="bg-primary text-primary-foreground">
-              <p>Favorite-nos no Github! ⭐</p>
-            </TooltipContent>
-          </Tooltip>
-        </div>
+      <div className="absolute top-4 right-4 z-50">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="https://github.com/jmgrd98/vaguinhas"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 text-black dark:text-white hover:text-blue-500 transition-colors"
+            >
+              <FaGithub size={24} />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="left" align="end" className="bg-primary text-primary-foreground">
+            <p>Favorite-nos no Github! ⭐</p>
+          </TooltipContent>
+        </Tooltip>
+      </div>
 
       <main className="flex-grow flex flex-col items-center justify-center">
-        <p
-          className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}
-        >
+        <p className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}>
           vaguinhas
         </p>
-        <div className="flex flex-col gap-5   items-center w-full max-w-[1200px] mt-8 ">
+        <div className="flex flex-col gap-5 items-center w-full max-w-[1200px] mt-8 ">
           <p className="mb-2 text-lg sm:text-xl font-bold text-center">
             Insira seu e-mail para receber vaguinhas em tecnologia todos os
             dias na sua caixa de entrada! 😊
@@ -302,6 +340,7 @@ export default function Home() {
             onChange={(e) => setEmail(e.currentTarget.value)}
             className="w-full"
           />
+          {validationError && <p className="text-red-500 text-sm w-full">{validationError}</p>}
 
           <Select
             value={seniorityLevel}
@@ -332,6 +371,57 @@ export default function Home() {
           >
             {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
           </Button>
+
+        <AnimatePresence mode="wait">
+          {isAccessingSubscriberArea ? (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mt-10 w-full md:w-1/2 flex flex-col gap-3"
+            >
+              <Input
+                type="email"
+                placeholder="Insira seu e-mail cadastrado"
+                value={accessEmail}
+                onChange={(e) => setAccessEmail(e.target.value)}
+                className="w-full"
+              />
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full cursor-pointer"
+                  onClick={() => setIsAccessingSubscriberArea(false)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="default"
+                  className="w-full cursor-pointer"
+                  onClick={handleSubscriberAccess}
+                >
+                  Acessar Área
+                </Button>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Button 
+                variant="ghost" 
+                size="lg"
+                onClick={() => setIsAccessingSubscriberArea(true)}
+              >
+                Já é cadastrado? Acesse sua área de assinante.
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
           {status === "error" && (
             <Alert variant="destructive" className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
