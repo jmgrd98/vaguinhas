@@ -1,114 +1,136 @@
-// app/api/users/[id]/route.ts
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
 import { z } from "zod";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
 
-const updateSchema = z.object({
-  seniorityLevel: z.string().min(1, "Seniority level is required"),
-  stacks: z.array(z.string()).min(1, "At least one stack is required"),
+const emailSchema = z.string().email().transform(email => email.toLowerCase());
+const requestSchema = z.object({
+  email: emailSchema,
+  seniorityLevel: z.string().min(1).max(50),
+  stack: z.string().min(1).max(50),
 });
 
-// Corrected GET function signature
-export async function GET(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
+// Initialize rate limiter
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(5, "60 s"),
+  analytics: true,
+});
+
+export async function POST(req: NextRequest): Promise<NextResponse> {
+  // CORS headers configuration
+  const headers = {
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+      ? '*' 
+      : 'https://www.vaguinhas.com.br',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
+
   try {
-    const { db } = await connectToDatabase();
+    // Handle OPTIONS requests
+    if (req.method === 'OPTIONS') {
+      return new NextResponse(null, { headers });
+    }
+
+    // Rate limiting
+    const ip = req.headers.get("cf-connecting-ip") || 
+               req.headers.get("x-forwarded-for") || 
+               req.headers.get("x-real-ip") || 
+               "127.0.0.1";
     
-    if (!ObjectId.isValid(id)) {
+    const { success } = await ratelimit.limit(ip);
+    
+    if (!success) {
       return NextResponse.json(
-        { message: "Invalid user ID format" },
-        { status: 400 }
+        { message: "Too many requests. Please try again later." },
+        { status: 429, headers }
       );
     }
 
-    const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(id)
+    // Validate request body
+    const body = await req.json();
+    const validation = requestSchema.safeParse(body);
+    
+    if (!validation.success) {
+      return NextResponse.json(
+        { 
+          message: "Invalid request", 
+          errors: validation.error.errors 
+        },
+        { status: 400, headers }
+      );
+    }
+    
+    const { email: normalizedEmail, seniorityLevel, stack } = validation.data;
+
+    // Database operations
+    const { db } = await connectToDatabase();
+    const existing = await db.collection("users").findOne({ email: normalizedEmail });
+    
+    if (existing) {
+      return NextResponse.json(
+        { message: "This email is already registered" },
+        { status: 409, headers }
+      );
+    }
+
+    // Generate confirmation token
+    const confirmationToken = generateConfirmationToken();
+    const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    
+    // Insert new user
+    const insertResult = await db.collection("users").insertOne({
+      email: normalizedEmail,
+      seniorityLevel,
+      stacks: [stack],
+      createdAt: new Date(),
+      confirmed: false,
+      confirmationToken,
+      confirmationExpires,
     });
 
-    if (!user) {
+    try {
+      // Send confirmation email
+      await sendConfirmationEmail(normalizedEmail, confirmationToken);
+    } catch (error) {
+      // Rollback on email failure
+      await db.collection("users").deleteOne({ _id: insertResult.insertedId });
+      console.error("Email sending error:", error);
+      
       return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
+        { message: "Failed to send confirmation email" },
+        { status: 500, headers }
       );
     }
 
-    const { _id, email, seniorityLevel, stacks, confirmed, createdAt } = user;
-    return NextResponse.json({
-      _id: _id.toString(),
-      email,
-      seniorityLevel,
-      stacks,
-      confirmed,
-      createdAt
-    }, { status: 200 });
-    
-  } catch (error) {
-    console.error("Error fetching user:", error);
+    // Send admin notification (fire-and-forget)
+    sendAdminNotification(normalizedEmail).catch(error => 
+      console.error("Admin notification failed:", error)
+    );
+
     return NextResponse.json(
-      { message: "Internal server error" },
+      { message: "Email saved and confirmation sent!" },
+      { status: 201, headers }
+    );
+  } catch (error) {
+    console.error("Server error:", error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : "Internal server error";
+    
+    return NextResponse.json(
+      { message: errorMessage },
       { status: 500 }
     );
   }
 }
 
-// PUT function remains unchanged
-export async function PUT(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-
-  try {
-    const { db } = await connectToDatabase();
-    
-    if (!ObjectId.isValid(id)) {
-      return NextResponse.json(
-        { message: "Invalid user ID format" },
-        { status: 400 }
-      );
-    }
-
-    const body = await req.json();
-    const validation = updateSchema.safeParse(body);
-    
-    if (!validation.success) {
-      return NextResponse.json(
-        { 
-          message: "Validation error",
-          errors: validation.error.errors 
-        },
-        { status: 400 }
-      );
-    }
-
-    const { seniorityLevel, stacks } = validation.data;
-
-    const result = await db.collection("users").updateOne(
-      { _id: new ObjectId(id) },
-      { $set: { seniorityLevel, stacks } }
-    );
-
-    if (result.matchedCount === 0) {
-      return NextResponse.json(
-        { message: "User not found" },
-        { status: 404 }
-      );
-    }
-
-    return NextResponse.json(
-      { message: "User preferences updated successfully" },
-      { status: 200 }
-    );
-    
-  } catch (error) {
-    console.error("Error updating user:", error);
-    return NextResponse.json(
-      { message: "Internal server error" },
-      { status: 500 }
-    );
-  }
+export async function GET() {
+  return NextResponse.json(
+    { message: "Method not allowed" },
+    { status: 405 }
+  );
 }
