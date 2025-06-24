@@ -36,6 +36,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check if user has confirmed their email
+    if (!user.confirmed) {
+      return NextResponse.json(
+        { message: "This email has not been confirmed." },
+        { status: 403 } // 403 Forbidden - account exists but not activated
+      );
+    }
+
     // Return user ID (convert ObjectId to string)
     return NextResponse.json(
       { userId: user._id.toString() },

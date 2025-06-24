@@ -4,6 +4,9 @@ import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
+import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
+
+const SALT_ROUNDS = 12; // Define salt rounds for bcrypt
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
@@ -26,7 +29,6 @@ const generatePassword = (length = 12): string => {
     () => charSet[Math.floor(Math.random() * charSet.length)]
   ).join('');
 };
-
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // CORS headers configuration
@@ -77,8 +79,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const stack = stacks && stacks[0];
 
     // Generate password
-    const password = generatePassword();
-
+    const plainPassword = generatePassword();
+    
+    // Hash password before storage
+    const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
 
     // Database operations
     const { db } = await connectToDatabase();
@@ -95,8 +99,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-
-    // Insert new user with generated password
+    // Insert new user with hashed password
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
@@ -105,12 +108,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       confirmed: false,
       confirmationToken,
       confirmationExpires,
-      password,
+      password: hashedPassword, // Store hashed password
     });
 
     try {
-      // Send confirmation email (optionally include the password)
-      await sendConfirmationEmail(normalizedEmail, confirmationToken, password);
+      // Send confirmation email with plain text password
+      await sendConfirmationEmail(normalizedEmail, confirmationToken, plainPassword);
     } catch (error) {
       // Rollback on email failure
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });

@@ -23,6 +23,7 @@
     "@upstash/redis": "^1.35.0",
     "agenda": "^5.0.0",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^3.0.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "express-rate-limit": "^7.5.0",

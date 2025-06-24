@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
+import bcrypt from "bcryptjs";
+
+const SALT_ROUNDS = 12;
 
 export async function GET() {
   try {
@@ -18,26 +21,29 @@ export async function GET() {
 
     for (const user of users) {
       // Generate random 12-character password
-      const password = Array.from({ length: 12 }, () => 
+      const plainPassword = Array.from({ length: 12 }, () => 
         charSet[Math.floor(Math.random() * charSet.length)]
       ).join('');
 
-      // Update user with plain text password
+      // Hash password before storing
+      const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
+
+      // Update user with hashed password
       await db.collection("users").updateOne(
         { _id: user._id },
-        { $set: { password } }
+        { $set: { password: hashedPassword } }
       );
 
-      // Store results
+      // Store results (with plain password for one-time disclosure)
       results.push({
         userId: user._id.toString(),
         email: user.email,
-        generatedPassword: password
+        generatedPassword: plainPassword
       });
     }
 
     return NextResponse.json({
-      message: "Passwords generated successfully",
+      message: "Passwords generated and hashed successfully",
       count: results.length,
       results
     }, { status: 200 });

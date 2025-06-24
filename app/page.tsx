@@ -268,7 +268,25 @@ export default function Home() {
     }
   };
 
-  const handleSubscriberAccess = async () => {
+  const resendConfirmationForEmail = async (emailToResend: string) => {
+    try {
+      const res = await fetch("/api/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailToResend }),
+      });
+
+      if (res.ok) {
+        toast.success("E-mail de confirmação reenviado!");
+      } else {
+        throw new Error();
+      }
+    } catch {
+      toast.error("Erro ao reenviar e-mail de confirmação");
+    }
+  };
+
+   const handleSubscriberAccess = async () => {
     if (!validateEmail(accessEmail)) {
       toast.error("Por favor, insira um e-mail válido");
       return;
@@ -286,6 +304,14 @@ export default function Home() {
         router.push(`/assinante/${data.userId}`);
       } else if (res.status === 404) {
         toast.error("E-mail não encontrado. Por favor, verifique ou cadastre-se.");
+      } else if (res.status === 403) {
+        // Show toast with resend button
+        toast.error("Esse e-mail ainda não foi confirmado", {
+          action: {
+            label: "Reenviar Confirmação",
+            onClick: () => resendConfirmationForEmail(accessEmail)
+          },
+        });
       } else {
         throw new Error("Erro ao buscar usuário");
       }

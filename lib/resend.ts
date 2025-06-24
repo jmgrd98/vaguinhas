@@ -31,6 +31,7 @@ export function generateConfirmationToken() {
 
 // 1. Send confirmation email
 export async function sendConfirmationEmail(email: string, token: string, password?: string) {
+  console.log('PASSWORD', password)
   const confirmationLink = `${process.env.NEXTAUTH_URL}/confirm-email?token=${token}`;
   const currentYear = new Date().getFullYear().toString();
   
