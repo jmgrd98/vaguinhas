@@ -9,7 +9,7 @@ const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
   email: emailSchema,
   seniorityLevel: z.string().min(1).max(50),
-  stack: z.string().min(1).max(50),
+  stacks: z.array(z.string().min(1).max(50)).min(1).optional(),
 });
 
 // Initialize rate limiter
@@ -18,6 +18,15 @@ const ratelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(5, "60 s"),
   analytics: true,
 });
+
+const generatePassword = (length = 12): string => {
+  const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
+  return Array.from(
+    { length },
+    () => charSet[Math.floor(Math.random() * charSet.length)]
+  ).join('');
+};
+
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // CORS headers configuration
@@ -64,7 +73,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     
-    const { email: normalizedEmail, seniorityLevel, stack } = validation.data;
+    const { email: normalizedEmail, seniorityLevel, stacks } = validation.data;
+    const stack = stacks && stacks[0];
+
+    // Generate password
+    const password = generatePassword();
 
     // Database operations
     const { db } = await connectToDatabase();
@@ -80,8 +93,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Generate confirmation token
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    
-    // Insert new user
+
+
+    // Insert new user with generated password
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
@@ -90,11 +104,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       confirmed: false,
       confirmationToken,
       confirmationExpires,
+      password,
     });
 
     try {
-      // Send confirmation email
-      await sendConfirmationEmail(normalizedEmail, confirmationToken);
+      // Send confirmation email (optionally include the password)
+      await sendConfirmationEmail(normalizedEmail, confirmationToken, password);
     } catch (error) {
       // Rollback on email failure
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });
@@ -112,7 +127,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     return NextResponse.json(
-      { message: "Email saved and confirmation sent!" },
+      { message: "Email saved, password generated, and confirmation sent!" },
       { status: 201, headers }
     );
   } catch (error) {
