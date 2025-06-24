@@ -1,4 +1,4 @@
-import React from 'react';
+import React from 'react'
 import {
   Html,
   Head,
@@ -26,17 +26,17 @@ import {
 
 interface FavoriteGithubEmailProps {
   currentYear: string | number;
-  useCid?: boolean; // Add useCid prop
+  useCid?: boolean;
 }
 
-const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({ 
+const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
   currentYear,
-  useCid = false // Default to false
+  useCid = false
 }) => {
   return (
     <Html>
       <Head />
-      <Preview>Favorite-nos no GitHub!</Preview>
+      <Preview>Nós estamos em constante evolução!</Preview>
       <Body style={mainStyle}>
         <Container style={containerStyle}>
           {/* Logo Section - Updated with conditional source */}
@@ -51,23 +51,17 @@ const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({
 
           {/* Heading and Content */}
           <Section style={sectionStyle}>
-            <Heading style={headingStyle}>Favorite-nos no GitHub!</Heading>
+            <Heading style={headingStyle}>Nós estamos em constante evolução!</Heading>
             <Text style={textStyle}>
-              Ajude-nos a alcançar mais desenvolvedores que estão à procura de vaguinhas.
-            </Text>
-            <Text style={textStyle}>
-              Acesse o{' '}
-              <a href="https://github.com/jmgrd98/vaguinhas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
-                nosso repositório
-              </a>{' '}
-              e deixe sua estrelinha! ⭐
-            </Text>
-            <Text style={textStyle}>
-              O seu apoio é muito importante para nos ajudar a crescer! 😉
+              E para isso gostamos de perguntar aos nossos assinantes se vocês possuem alguma dúvida, sugestão ou reclamação!
             </Text>
 
             <Text style={textStyle}>
-              Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para nos chamar no{' '}
+              Responda a esse e-mail com qualquer feedback que você possa ter. Nós iremos ler todos e cada um dos e-mails! 😊
+            </Text>
+            
+            <Text style={textStyle}>
+              Sinta-se livre para nos mandar uma mensagem no{' '}
               <a href="https://linkedin.com/company/vaguinhas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
                 LinkedIn
               </a>{' '}
@@ -81,7 +75,7 @@ const FavoriteGithubEmail: React.FC<FavoriteGithubEmailProps> = ({
         </Container>
       </Body>
     </Html>
-  );
-};
+  )
+}
 
-export default FavoriteGithubEmail;
+export default FeedbackEmail

@@ -79,6 +79,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Generate password
     const password = generatePassword();
 
+
     // Database operations
     const { db } = await connectToDatabase();
     const existing = await db.collection("users").findOne({ email: normalizedEmail });
