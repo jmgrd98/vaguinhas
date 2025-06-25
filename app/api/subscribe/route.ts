@@ -3,8 +3,10 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
+import { sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
 import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
+import { generatePassword } from "@/lib/generatePassword";
+import generateConfirmationToken from "@/lib/generateConfirmationToken";
 
 const SALT_ROUNDS = 12; // Define salt rounds for bcrypt
 
@@ -21,14 +23,6 @@ const ratelimit = new Ratelimit({
   limiter: Ratelimit.slidingWindow(5, "60 s"),
   analytics: true,
 });
-
-const generatePassword = (length = 12): string => {
-  const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()';
-  return Array.from(
-    { length },
-    () => charSet[Math.floor(Math.random() * charSet.length)]
-  ).join('');
-};
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   // CORS headers configuration

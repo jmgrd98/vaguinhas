@@ -1,14 +1,17 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { generateConfirmationToken, sendConfirmationEmail,  } from '@/lib/resend';
+import { sendConfirmationEmail } from '@/lib/resend';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { generatePassword } from "@/lib/generatePassword";
+import generateConfirmationToken from '@/lib/generateConfirmationToken';
 
 // Initialize rate limiter
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(3, "60 s"), // 3 requests per minute
+  limiter: Ratelimit.slidingWindow(3, "60 s"),
   analytics: true,
 });
 
@@ -16,6 +19,8 @@ const ratelimit = new Ratelimit({
 const resendSchema = z.object({
   email: z.string().email().transform(email => email.toLowerCase()),
 });
+
+const SALT_ROUNDS = 12;
 
 export async function POST(request: NextRequest) {
   // CORS headers configuration
@@ -79,30 +84,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate new token and update user
+    // Generate new token
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-    const updateResult = await db.collection("users").updateOne(
+    const newPassword = generatePassword();
+    const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
+
+    // Update user with new token AND password
+    await db.collection("users").updateOne(
       { _id: user._id },
       {
         $set: {
+          password: hashedPassword, // Update password
           confirmationToken,
           confirmationExpires,
-          lastResendAttempt: new Date()  // Track resend attempts
+          lastResendAttempt: new Date()
         }
       }
     );
 
-    if (updateResult.modifiedCount === 0) {
-      throw new Error("Failed to update user token");
-    }
-
-    // Send confirmation email
-    await sendConfirmationEmail(email, confirmationToken);
+    // Send confirmation email with password
+    await sendConfirmationEmail(email, confirmationToken, newPassword);
 
     return NextResponse.json(
-      { message: "E-mail de confirmação reenviado" },
+      { message: "E-mail de confirmação reenviado com sua senha" },
       { status: 200, headers }
     );
   } catch (error) {
@@ -112,17 +118,4 @@ export async function POST(request: NextRequest) {
       { status: 500, headers }
     );
   }
-}
-
-// OPTIONS handler for CORS preflight
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    headers: {
-      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-        ? '*' 
-        : 'https://www.vaguinhas.com.br',
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
-  });
 }

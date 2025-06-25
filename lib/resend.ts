@@ -1,6 +1,4 @@
 import { Resend } from 'resend';
-import { randomBytes } from 'crypto';
-
 import ConfirmationEmail from '@/emails/confirmation';
 import AdminNotificationEmail from '@/emails/admin-notification';
 import SupportUsEmail from '@/emails/support-us';
@@ -24,14 +22,10 @@ if (!process.env.EMAIL_FROM) {
   console.warn('⚠️ EMAIL_FROM não definido. Ajuste sua env var.');
 }
 
-// Generate confirmation token
-export function generateConfirmationToken() {
-  return randomBytes(32).toString('hex');
-}
 
 // 1. Send confirmation email
 export async function sendConfirmationEmail(email: string, token: string, password?: string) {
-  console.log('PASSWORD', password)
+
   const confirmationLink = `${process.env.NEXTAUTH_URL}/confirm-email?token=${token}`;
   const currentYear = new Date().getFullYear().toString();
   
