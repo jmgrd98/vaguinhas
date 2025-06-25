@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { sendConfirmEmailReminder, generateConfirmationToken } from '@/lib/resend';
+import { sendConfirmEmailReminder } from '@/lib/resend';
+import generateConfirmationToken from '@/lib/generateConfirmationToken';
 
 export async function GET() {
   // Enhanced secret validation
