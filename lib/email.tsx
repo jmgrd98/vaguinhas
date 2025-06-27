@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import SupportUsEmail from '@/emails/support-us';
 import { render } from '@react-email/render';
 import FeedbackEmail from '@/emails/feedback';
+import ProblemsEmail from '@/emails/problems';
 // import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
@@ -197,6 +198,27 @@ export async function sendConfirmEmailReminder(email: string, token: string) {
     to: email,
     subject: "Você esqueceu de confirmar seu e-mail? 🤔",
     html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+export async function sendProblemsEmail(email: string) {
+  const currentYear = new Date().getFullYear().toString();
+
+  // Renderiza o componente React para HTML
+  const html = await render(
+    <ProblemsEmail
+      currentYear={currentYear}
+      useCid={true}
+    />
+  );
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Estamos passando por problemas, pedimos a sua compreensão 🧡",
+    html, // Usa o HTML renderizado
   };
 
   return transporter.sendMail(mailOptions);

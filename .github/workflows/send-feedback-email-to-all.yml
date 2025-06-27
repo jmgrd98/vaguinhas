@@ -10,7 +10,7 @@ jobs:
   trigger-reminders:
     runs-on: ubuntu-latest
     env:
-      API_ENDPOINT: https://vaguinhas.com.br/api/send-feedback-email-to-all
+      API_ENDPOINT: https://vaguinhas.com.br/api/emails/send-feedback-email-to-all
       API_TOKEN: ${{ secrets.JWT_SECRET }}
 
     steps:

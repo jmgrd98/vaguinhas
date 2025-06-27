@@ -20,7 +20,7 @@ export default function ConfirmEmailClient() {
           throw new Error('Token não encontrado');
         }
 
-        const res = await fetch(`/api/confirm-email?token=${token}`);
+        const res = await fetch(`/api/emails/confirm-email?token=${token}`);
         if (!res.ok) {
           const errorData = await res.json();
           throw new Error(errorData.message || 'Erro na confirmação');
@@ -43,7 +43,7 @@ export default function ConfirmEmailClient() {
       const email = localStorage.getItem('confirmationEmail');
       if (!email) throw new Error('E-mail não encontrado');
 
-      const res = await fetch('/api/resend-confirmation', {
+      const res = await fetch('/api/emails/resend-confirmation', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),

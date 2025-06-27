@@ -1,4 +1,3 @@
-// app/api/support/send-all/route.ts
 import { NextResponse, NextRequest } from "next/server";
 // import { sendSupportUsEmail } from "@/lib/resend";
 import { sendSupportUsEmail } from "@/lib/email";

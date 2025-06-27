@@ -3,13 +3,18 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { generateConfirmationToken, sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
+import { sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
+import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
+import { generatePassword } from "@/lib/generatePassword";
+import generateConfirmationToken from "@/lib/generateConfirmationToken";
+
+const SALT_ROUNDS = 12; // Define salt rounds for bcrypt
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
   email: emailSchema,
   seniorityLevel: z.string().min(1).max(50),
-  stack: z.string().min(1).max(50),
+  stacks: z.array(z.string().min(1).max(50)).min(1).optional(),
 });
 
 // Initialize rate limiter
@@ -64,7 +69,14 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     
-    const { email: normalizedEmail, seniorityLevel, stack } = validation.data;
+    const { email: normalizedEmail, seniorityLevel, stacks } = validation.data;
+    const stack = stacks && stacks[0];
+
+    // Generate password
+    const plainPassword = generatePassword();
+    
+    // Hash password before storage
+    const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
 
     // Database operations
     const { db } = await connectToDatabase();
@@ -80,8 +92,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Generate confirmation token
     const confirmationToken = generateConfirmationToken();
     const confirmationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-    
-    // Insert new user
+
+    // Insert new user with hashed password
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
       seniorityLevel,
@@ -90,11 +102,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       confirmed: false,
       confirmationToken,
       confirmationExpires,
+      password: hashedPassword, // Store hashed password
     });
 
     try {
-      // Send confirmation email
-      await sendConfirmationEmail(normalizedEmail, confirmationToken);
+      // Send confirmation email with plain text password
+      await sendConfirmationEmail(normalizedEmail, confirmationToken, plainPassword);
     } catch (error) {
       // Rollback on email failure
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });
@@ -112,7 +125,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     return NextResponse.json(
-      { message: "Email saved and confirmation sent!" },
+      { message: "Email saved, password generated, and confirmation sent!" },
       { status: 201, headers }
     );
   } catch (error) {
