@@ -169,8 +169,8 @@ export default function Home() {
           }, delay);
         };
 
-        scheduleEmail("/api/send-favourite-on-github-email", 120_000);
-        scheduleEmail("/api/send-support-us-email", 600_000);
+        scheduleEmail("/api/emails/send-favourite-on-github-email", 120_000);
+        scheduleEmail("/api/emails/send-feedback-email", 600_000);
       } 
       else if (res.status === 409) {
         toast.warning("Esse e-mail já está cadastrado!", {
@@ -197,7 +197,7 @@ export default function Home() {
         return;
       }
 
-      const res = await fetch("/api/resend-confirmation", {
+      const res = await fetch("/api/emails/resend-confirmation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: emailToResend }),

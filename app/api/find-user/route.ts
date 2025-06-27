@@ -1,4 +1,3 @@
-// app/api/find-user/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
