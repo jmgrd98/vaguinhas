@@ -244,7 +244,14 @@ export default function Home() {
           <SelectValue placeholder="Selecione sua área" />
         </SelectTrigger>
         <SelectContent>
-          {['frontend','backend','devops','dados','design'].map(area => (
+          {[
+            'frontend',
+            'backend',
+            'mobile',
+            // 'devops',
+            // 'dados',
+            'design'
+          ].map(area => (
             <SelectItem key={area} value={area}>
               {area === 'design' ? 'Designer UI/UX' : area.charAt(0).toUpperCase() + area.slice(1)}
             </SelectItem>
