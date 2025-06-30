@@ -134,7 +134,7 @@ export default function Home() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
         },
-        body: JSON.stringify({ email, seniorityLevel, stack }),
+        body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
       });
 
       if (!res.ok) {
