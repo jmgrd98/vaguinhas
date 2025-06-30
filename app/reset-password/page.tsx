@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -9,11 +8,19 @@ import { useRouter } from "next/navigation";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const token = searchParams.get("token");
+  const [token, setToken] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
+
+  
+  useEffect(() => {
+    console.log("INITIALIZING", initializing);
+    const query = new URLSearchParams(window.location.search);
+    setToken(query.get("token"));
+    setInitializing(false);
+  }, []);
 
   const handleSubmit = async () => {
     if (!token) {
