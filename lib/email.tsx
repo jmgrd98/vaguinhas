@@ -6,6 +6,8 @@ import SupportUsEmail from '@/emails/support-us';
 import { render } from '@react-email/render';
 import FeedbackEmail from '@/emails/feedback';
 import ProblemsEmail from '@/emails/problems';
+import NewUpdateEmail from '@/emails/new-update';
+import { PasswordResetEmail } from '@/emails/password-reset';
 // import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
@@ -219,6 +221,48 @@ export async function sendProblemsEmail(email: string) {
     to: email,
     subject: "Estamos passando por problemas, pedimos a sua compreensão 🧡",
     html, // Usa o HTML renderizado
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+export async function sendNewUpdateEmail(email: string) {
+  const currentYear = new Date().getFullYear().toString();
+
+  // Renderiza o componente React para HTML
+  const html = await render(
+    <NewUpdateEmail
+      currentYear={currentYear}
+      useCid={true}
+    />
+  );
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Agora o vaguinhas é ainda mais personalizável! 🧡",
+    html, // Usa o HTML renderizado
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+export async function sendPasswordResetEmail(email: string, token: string) {
+  const resetLink = `${baseUrl}/reset-password?token=${token}`;
+  const html = await render(
+    <PasswordResetEmail
+      resetLink={resetLink}
+    />
+  )
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Redefina sua senha 🧡",
+    html,
   };
 
   return transporter.sendMail(mailOptions);
