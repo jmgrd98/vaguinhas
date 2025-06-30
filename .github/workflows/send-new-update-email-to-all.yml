@@ -1,0 +1,23 @@
+name: Send New Update Email to All Subscribers
+
+on:
+  workflow_dispatch:
+  schedule:
+
+    - cron: '0 10 * * *'
+
+jobs:
+  trigger-reminders:
+    runs-on: ubuntu-latest
+    env:
+      API_ENDPOINT: https://vaguinhas.com.br/api/emails/send-new-update-email-to-all
+      API_TOKEN: ${{ secrets.JWT_SECRET }}
+
+    steps:
+      - name: Send feedback email to all subscribers
+        run: |
+          curl -X POST "$API_ENDPOINT" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.JWT_SECRET }}"
+
+
