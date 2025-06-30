@@ -1,4 +1,3 @@
-// app/api/format-email/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import juice from 'juice';
 
