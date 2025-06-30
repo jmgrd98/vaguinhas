@@ -22,6 +22,8 @@ export default function SubscriberAreaLoginModal({
   const [accessPassword, setAccessPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showResetForm, setShowResetForm] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
 
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,6 +85,36 @@ export default function SubscriberAreaLoginModal({
     }
   }, [accessEmail, accessPassword, router, resendConfirmation, onClose, validateEmail]);
 
+  const handlePasswordReset = useCallback(async () => {
+    if (!validateEmail(resetEmail)) {
+      toast.error("Por favor, insira um e-mail válido");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/users/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: resetEmail }),
+      });
+
+      if (res.ok) {
+        toast.success("E-mail de redefinição enviado! Verifique sua caixa de entrada.");
+        setShowResetForm(false);
+        setResetEmail("");
+      } else {
+        const errorData = await res.json();
+        toast.error(errorData.message || "Falha ao enviar e-mail de redefinição");
+      }
+    } catch (error: unknown) {
+      console.error('Error:', error);
+      toast.error("Erro ao processar pedido de redefinição de senha");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [resetEmail, validateEmail]);
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -94,52 +126,106 @@ export default function SubscriberAreaLoginModal({
             transition={{ duration: 0.2 }}
             className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
           >
-            <h2 className="text-xl font-bold mb-4">Acessar Área do Assinante</h2>
-            
-            <div className="space-y-4">
-              <Input
-                type="email"
-                placeholder="Insira seu e-mail cadastrado"
-                value={accessEmail}
-                onChange={(e) => setAccessEmail(e.target.value)}
-                className="w-full"
-              />
-              <div className="relative w-full">
+            {showResetForm ? (
+              <>
+                <h2 className="text-xl font-bold mb-4">Redefinir Senha</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
+                  Insira seu e-mail para receber instruções de redefinição de senha
+                </p>
+                
                 <Input
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Insira sua senha"
-                  value={accessPassword}
-                  onChange={(e) => setAccessPassword(e.target.value)}
-                  className="w-full pr-10"
+                  type="email"
+                  placeholder="Insira seu e-mail cadastrado"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  className="w-full mb-4"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(prev => !prev)}
-                  className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-3 mt-6">
-              <Button
-                variant="outline"
-                onClick={onClose}
-                disabled={isLoading}
-                className="cursor-pointer"
-              >
-                Cancelar
-              </Button>
-              <Button
-                variant="default"
-                onClick={handleSubscriberAccess}
-                disabled={isLoading || !accessEmail || !accessPassword}
-                className="cursor-pointer"
-              >
-                {isLoading ? "Carregando..." : "Acessar"}
-              </Button>
-            </div>
+                
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowResetForm(false);
+                      setResetEmail("");
+                    }}
+                    disabled={isLoading}
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    variant="default"
+                    onClick={handlePasswordReset}
+                    disabled={isLoading || !validateEmail(resetEmail)}
+                  >
+                    {isLoading ? "Enviando..." : "Enviar Instruções"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h2 className="text-xl font-bold mb-4">Acessar Área do Assinante</h2>
+                
+                <div className="space-y-4">
+                  <Input
+                    type="email"
+                    placeholder="Insira seu e-mail cadastrado"
+                    value={accessEmail}
+                    onChange={(e) => setAccessEmail(e.target.value)}
+                    className="w-full"
+                  />
+                  <div className="relative w-full">
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Insira sua senha"
+                      value={accessPassword}
+                      onChange={(e) => setAccessPassword(e.target.value)}
+                      className="w-full pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(prev => !prev)}
+                      className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <FaEyeSlash /> : <FaEye />}
+                    </button>
+                  </div>
+                  
+                  
+                </div>
+                
+                <div className="flex justify-center  mt-6">
+                   <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowResetForm(true)}
+                    className="text-[12px] mt-2 justify-start w-1/2 text-black hover:text-blue-500 hover:bg-transparent cursor-pointer"
+                  >
+                    Esqueceu a sua senha?
+                  </Button>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={onClose}
+                      disabled={isLoading}
+                      className="cursor-pointer"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="default"
+                      onClick={handleSubscriberAccess}
+                      disabled={isLoading || !accessEmail || !accessPassword}
+                      className="cursor-pointer"
+                    >
+                      {isLoading ? "Carregando..." : "Acessar"}
+                    </Button>
+                  </div>
+                </div>
+
+               
+              </>
+            )}
           </motion.div>
         </div>
       )}
