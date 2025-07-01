@@ -3,7 +3,11 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { sendAdminNotification, sendConfirmationEmail } from "@/lib/resend";
+import { 
+  sendAdminNotification,
+  // sendConfirmationEmail 
+} from "@/lib/resend";
+import { sendConfirmationEmail } from "@/lib/email";
 import bcrypt from "bcryptjs"; // Import bcrypt for password hashing
 import { generatePassword } from "@/lib/generatePassword";
 import generateConfirmationToken from "@/lib/generateConfirmationToken";

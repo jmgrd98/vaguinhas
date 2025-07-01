@@ -8,6 +8,7 @@ import FeedbackEmail from '@/emails/feedback';
 import ProblemsEmail from '@/emails/problems';
 import NewUpdateEmail from '@/emails/new-update';
 import { PasswordResetEmail } from '@/emails/password-reset';
+import ConfirmationEmail from '@/emails/confirmation';
 // import qrCode from '@/public/qrcode-pix.png';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
@@ -61,14 +62,33 @@ async function loadTemplate(templateName: string, replacements: Record<string, s
 }
 
 
-export async function sendConfirmationEmail(email: string, token: string) {
-
+export async function sendConfirmationEmail(
+  email: string,
+  token: string,
+  password?: string
+) {
   const confirmationLink = `${baseUrl}/confirm-email?token=${token}`;
+  const currentYear = new Date().getFullYear().toString();
 
-  const html = await loadTemplate('confirmation', {
+  // Build template context
+  const templateVars: Record<string, string> = {
     CONFIRMATION_LINK: confirmationLink,
-    CURRENT_YEAR: new Date().getFullYear().toString()
-  });
+    CURRENT_YEAR: currentYear,
+  };
+
+  // Only include PASSWORD if one was passed
+  if (password) {
+    templateVars.PASSWORD = password;
+  }
+
+  // Load the HTML from your engine (e.g. Handlebars, EJS, etc.)
+  const html = await render(
+    <ConfirmationEmail
+      confirmationLink={confirmationLink}
+      currentYear={currentYear}
+      password={password}
+    />
+  )
 
   if (!LOGO_BASE64) {
     throw new Error('VAGUINHAS_LOGO is not defined');
@@ -77,12 +97,13 @@ export async function sendConfirmationEmail(email: string, token: string) {
   const mailOptions = {
     ...baseMailOptions,
     to: email,
-    subject: "Confirme seu e-mail para começar a receber vaguinhas 🧡",
+    subject: 'Confirme seu e-mail para começar a receber vaguinhas 🧡',
     html,
   };
 
   return transporter.sendMail(mailOptions);
 }
+
 
 export async function sendAdminNotification(email: string) {
   const html = await loadTemplate('admin-notification', {

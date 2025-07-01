@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { sendConfirmationEmail } from '@/lib/resend';
+// import { sendConfirmationEmail } from '@/lib/resend';
+import { sendConfirmationEmail } from '@/lib/email';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
