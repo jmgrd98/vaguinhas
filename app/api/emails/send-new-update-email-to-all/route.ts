@@ -1,24 +1,12 @@
 import { NextResponse } from "next/server";
-// import { sendFavouriteOnGithubEmail } from "@/lib/resend";
-import { sendNewUpdateEmail } from "@/lib/email";
+import { emailQueue } from "@/lib/emailQueue";
 import { getAllSubscribers } from "@/lib/mongodb";
-
-async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
-  for (const email of emails) {
-    try {
-      await sendFn(email);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (error) {
-      console.error(`Failed to send to ${email}:`, error);
-    }
-  }
-}
 
 export async function GET() {
   try {
     const subscribers = await getAllSubscribers();
     const emails = subscribers.map(s => s.email).filter(Boolean);
-    
+
     if (!emails.length) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
@@ -26,16 +14,26 @@ export async function GET() {
       );
     }
 
-    await throttleEmails(emails, sendNewUpdateEmail, 1500);
+    // Add emails to queue
+    await emailQueue.addBulk(
+      emails.map(email => ({
+        name: "new-update-email",
+        data: { email },
+        opts: { 
+          removeOnComplete: true,
+          removeOnFail: 100 
+        }
+      }))
+    );
 
     return NextResponse.json(
-      { message: `Emails queued for ${emails.length} recipients` },
+      { message: `${emails.length} emails queued for sending` },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error("Queueing failed:", error);
     return NextResponse.json(
-      { error: "Email processing error" },
+      { error: "Email queueing error" },
       { status: 500 }
     );
   }
