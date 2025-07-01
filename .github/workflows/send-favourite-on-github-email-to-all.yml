@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Send favourite on github emails
         run: |
-          curl -X POST "$API_ENDPOINT" \
+          curl -X GET "$API_ENDPOINT" \
           -H "Content-Type: application/json" \
           -H "Authorization: Bearer ${{ secrets.JWT_SECRET }}"
 
