@@ -3,12 +3,43 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 
+// Define webhook payload type
+interface WebhookPayload {
+  event: "email_confirmed";
+  email: string;
+  seniorityLevel: string;
+  stack: string;
+  timestamp: string;
+  confirmedAt: string;
+}
+
 // Initialize rate limiter
 const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, "60 s"), // 10 requests per minute
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
   analytics: true,
 });
+
+// Webhook trigger function with type safety
+const triggerMakeWebhook = async (data: WebhookPayload): Promise<void> => {
+  const WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL;
+  
+  if (!WEBHOOK_URL) {
+    console.error("Make webhook URL not configured");
+    return;
+  }
+  console.log('DATA', data)
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    console.log(`Webhook triggered for ${data.email}`);
+  } catch (error) {
+    console.error("Make.com webhook failed:", error);
+  }
+};
 
 export async function GET(request: NextRequest) {
   // CORS headers configuration
@@ -45,7 +76,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    if (!token || token.length !== 64) { // Assuming 64-character tokens
+    if (!token || token.length !== 64) {
       return NextResponse.json(
         { message: "Token inválido" },
         { status: 400, headers }
@@ -79,7 +110,7 @@ export async function GET(request: NextRequest) {
       {
         $set: { 
           confirmed: true,
-          confirmedAt: new Date()  // Add confirmation timestamp
+          confirmedAt: new Date()
         },
         $unset: { 
           confirmationToken: "", 
@@ -92,14 +123,27 @@ export async function GET(request: NextRequest) {
       throw new Error("Failed to update user confirmation status");
     }
 
+    // Trigger webhook with type-safe payload
+    const payload: WebhookPayload = {
+      event: "email_confirmed",
+      email: user.email,
+      seniorityLevel: user.seniorityLevel,
+      stack: user.stacks[0], // Using the first stack
+      timestamp: new Date().toISOString(),
+      confirmedAt: new Date().toISOString()
+    };
+
+    // Fire and forget - no need to await
+    triggerMakeWebhook(payload);
+
     return NextResponse.json(
       { message: "E-mail confirmado com sucesso!" },
       { status: 200, headers }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Erro na confirmação de e-mail:", error);
     return NextResponse.json(
-      { message: "Erro ao confirmar e-mail" },
+      { message: (error as Error).message || "Erro ao confirmar e-mail" },
       { status: 500, headers }
     );
   }
