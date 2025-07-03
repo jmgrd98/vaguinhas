@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
-import { sendFavouriteOnGithubEmail } from "@/lib/resend";
+// import { sendFavouriteOnGithubEmail } from "@/lib/resend";
+import { sendFavouriteOnGithubEmail } from "@/lib/email";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { z } from "zod";
