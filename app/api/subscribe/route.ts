@@ -88,7 +88,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     
     if (existing) {
       return NextResponse.json(
-        { message: "This email is already registered" },
+        // { message: "This email is already registered" },
+        { message: "Esse e-mail ja foi cadastrado!" },
         { status: 409, headers }
       );
     }
