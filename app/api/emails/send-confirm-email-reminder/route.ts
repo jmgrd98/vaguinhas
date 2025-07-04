@@ -1,37 +1,31 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { sendConfirmEmailReminder } from '@/lib/resend';
+// import { sendConfirmEmailReminder } from '@/lib/resend';
+import { sendConfirmEmailReminder } from '@/lib/email';
 import generateConfirmationToken from '@/lib/generateConfirmationToken';
+import sendBatchEmails from '@/lib/sendBatchEmails';
 
 export async function GET() {
-  // Enhanced secret validation
-  // const secret = request.nextUrl.searchParams.get('secret');
-  // if (!secret || secret !== process.env.CRON_SECRET) {
-  //   console.warn('Unauthorized cron job attempt');
-  //   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  // }
-
   try {
     const { db } = await connectToDatabase();
-    
-    // Calculate time thresholds
     const now = new Date();
     
-    // Find unconfirmed users who need reminders
     const users = await db.collection("users").find({
       confirmed: false,
     }).toArray();
     
     let processed = 0;
     let skipped = 0;
+
+    // Prepare email sending tasks
+    const emailTasks: (() => Promise<void>)[] = [];
     
     for (const user of users) {
       try {
-        // Generate new token with 7-day expiration
         const newToken = generateConfirmationToken();
         const newExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         
-        // Update user with new token and reminder tracking
+        // Update user first - this doesn't need to be batched
         const updateResult = await db.collection("users").updateOne(
           { _id: user._id },
           { 
@@ -49,13 +43,35 @@ export async function GET() {
           continue;
         }
         
-        // Send email with exponential backoff
-        await sendConfirmEmailReminder(user.email, newToken);
-        processed++;
+        // Create email sending task
+        emailTasks.push(async () => {
+          try {
+            await sendConfirmEmailReminder(user.email, newToken);
+            processed++;
+          } catch (error) {
+            console.error(`Failed to send to ${user.email}:`, error);
+            skipped++;
+          }
+        });
       } catch (error) {
         console.error(`Failed to process user ${user.email}:`, error);
         skipped++;
       }
+    }
+
+    // Execute email tasks in batches
+    if (emailTasks.length > 0) {
+      console.log(`Processing ${emailTasks.length} email tasks in batches`);
+      
+      // We'll use our existing batch email function by wrapping the tasks
+      await sendBatchEmails(
+        emailTasks.map((_, i) => i.toString()), // Dummy "emails" array
+        async (index) => {
+          await emailTasks[parseInt(index)]();
+        },
+        5, // Batch size
+        1500 // Delay between batches
+      );
     }
 
     return NextResponse.json({

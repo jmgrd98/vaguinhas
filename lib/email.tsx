@@ -10,6 +10,9 @@ import NewUpdateEmail from '@/emails/new-update';
 import { PasswordResetEmail } from '@/emails/password-reset';
 import ConfirmationEmail from '@/emails/confirmation';
 // import qrCode from '@/public/qrcode-pix.png';
+import FavoriteGithubEmail from '@/emails/favourite-on-github';
+import AdminNotificationEmail from '@/emails/admin-notification';
+import ConfirmEmailReminder from '@/emails/confirm-email-reminder';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
 
@@ -50,16 +53,16 @@ const baseMailOptions = {
 
 const baseUrl = process.env.NEXTAUTH_URL;
 
-async function loadTemplate(templateName: string, replacements: Record<string, string>) {
-  const templatePath = path.join(process.cwd(), 'emails', `${templateName}.tsx`);
-  let content = await fs.readFile(templatePath, 'utf-8');
+// async function loadTemplate(templateName: string, replacements: Record<string, string>) {
+//   const templatePath = path.join(process.cwd(), 'emails', `${templateName}.tsx`);
+//   let content = await fs.readFile(templatePath, 'utf-8');
 
-  Object.entries(replacements).forEach(([key, value]) => {
-    content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
-  });
+//   Object.entries(replacements).forEach(([key, value]) => {
+//     content = content.replace(new RegExp(`{{${key}}}`, 'g'), value);
+//   });
   
-  return content;
-}
+//   return content;
+// }
 
 
 export async function sendConfirmationEmail(
@@ -106,10 +109,18 @@ export async function sendConfirmationEmail(
 
 
 export async function sendAdminNotification(email: string) {
-  const html = await loadTemplate('admin-notification', {
-    USER_EMAIL: email,
-    CURRENT_YEAR: new Date().getFullYear().toString()
-  });
+  // const html = await loadTemplate('admin-notification', {
+  //   USER_EMAIL: email,
+  //   CURRENT_YEAR: new Date().getFullYear().toString()
+  // });
+
+  const html = await render(
+    <AdminNotificationEmail 
+      userEmail={email}
+      currentYear={new Date().getFullYear().toString()}
+      baseURL={baseUrl}
+    />
+  )
 
   const mailOptions = {
     ...baseMailOptions,
@@ -187,9 +198,12 @@ export async function sendSupportUsEmail(email: string) {
 }
 
 export async function sendFavouriteOnGithubEmail(email: string) {
-  const html = await loadTemplate("favourite-on-github", {
-    CURRENT_YEAR: new Date().getFullYear().toString(),
-  });
+  const html = await render(
+    <FavoriteGithubEmail 
+      currentYear={new Date().getFullYear().toString()}
+
+    />
+  )
 
   if (!LOGO_BASE64) {
     throw new Error("VAGUINHAS_LOGO is not defined");
@@ -207,10 +221,12 @@ export async function sendFavouriteOnGithubEmail(email: string) {
 
 export async function sendConfirmEmailReminder(email: string, token: string) {
   const confirmationLink = `${baseUrl}/confirm-email?token=${token}`;
-  const html = await loadTemplate("confirm-email-reminder", {
-    CONFIRMATION_LINK: confirmationLink,
-    CURRENT_YEAR: new Date().getFullYear().toString(),
-  });
+  const html = await render(
+    <ConfirmEmailReminder
+      confirmationLink={confirmationLink}
+      currentYear={new Date().getFullYear().toString()}
+    />
+  )
 
   if (!LOGO_BASE64) {
     throw new Error("VAGUINHAS_LOGO is not defined");

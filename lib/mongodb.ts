@@ -20,20 +20,24 @@ export async function connectToDatabase() {
   return { client, db };
 }
 
-export async function getAllSubscribers() {
+export async function getAllSubscribers(page: number, pageSize: number) {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
 
-    const subscribers =  await subscribersCollection.find(
+    const total = await subscribersCollection.countDocuments();
+    const subscribers = await subscribersCollection.find(
       {},
       { projection: { email: 1, _id: 0 } }
-    ).toArray();
+    )
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .toArray();
 
-    return subscribers;
+    return { subscribers, total };
   } catch (error) {
     console.error("Failed to fetch subscribers:", error);
-    return [];
+    return { subscribers: [], total: 0 };
   }
 }
 
