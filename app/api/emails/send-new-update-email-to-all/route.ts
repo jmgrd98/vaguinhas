@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import sendBatchEmails from "@/lib/sendBatchEmails";
 import { sendNewUpdateEmail } from "@/lib/email";
-import { getAllSubscribers } from "@/lib/mongodb";
+import { getSubscribersWithoutStacks } from "@/lib/mongodb"; // Import the new function
 
 export async function GET() {
   try {
@@ -11,19 +11,10 @@ export async function GET() {
     let hasMore = true;
     const allEmails: string[] = [];
 
-    // Only fetch users who do NOT have a "stacks" field
-    const filter = { stacks: { $exists: false } };
-
     while (hasMore) {
-      const { subscribers, total } = await getAllSubscribers(
-        page,
-        pageSize,
-        filter
-      );
-
-      const emails = subscribers
-        .map((s) => s.email)
-        .filter(Boolean);
+      // Use the specialized function
+      const { subscribers, total } = await getSubscribersWithoutStacks(page, pageSize);
+      const emails = subscribers.map(s => s.email).filter(Boolean);
 
       if (emails.length) {
         allEmails.push(...emails);
@@ -34,7 +25,7 @@ export async function GET() {
       page++;
     }
 
-    if (!totalEmails) {
+    if (totalEmails === 0) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
         { status: 400 }
