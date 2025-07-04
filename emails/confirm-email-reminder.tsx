@@ -12,14 +12,14 @@ import {
   Img,
 } from '@react-email/components';
 
-interface ConfirmEmailNotificationEmailProps {
+interface ConfirmEmailReminderProps {
   confirmationLink: string;
   currentYear: string | number;
   baseURL?: string;
   useCid?: boolean;
 }
 
-const ConfirmEmailNotificationEmail: React.FC<ConfirmEmailNotificationEmailProps> = ({
+const ConfirmEmailReminder: React.FC<ConfirmEmailReminderProps> = ({
   confirmationLink,
   currentYear,
   useCid = false,
@@ -137,4 +137,4 @@ const footerStyle: React.CSSProperties = {
   color: '#6b7280',
 };
 
-export default ConfirmEmailNotificationEmail;
+export default ConfirmEmailReminder;

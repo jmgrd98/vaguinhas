@@ -1,23 +1,25 @@
 import { NextResponse } from "next/server";
-// import { sendFavouriteOnGithubEmail } from "@/lib/resend";
 import { sendFavouriteOnGithubEmail } from "@/lib/email";
 import { getAllSubscribers } from "@/lib/mongodb";
-
-async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
-  for (const email of emails) {
-    try {
-      await sendFn(email);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (error) {
-      console.error(`Failed to send to ${email}:`, error);
-    }
-  }
-}
+import sendBatchEmails from "@/lib/sendBatchEmails";
 
 export async function GET() {
   try {
-    const subscribers = await getAllSubscribers();
-    const emails = subscribers.map(s => s.email).filter(Boolean);
+    // Get all subscribers with pagination support
+    let allSubscribers: { email: string }[] = [];
+    let page = 1;
+    const pageSize = 500;
+    let hasMore = true;
+
+    while (hasMore) {
+      console.log("STILL HAS MORE")
+      const { subscribers, total } = await getAllSubscribers(page, pageSize);
+      allSubscribers = [...allSubscribers, ...subscribers.map(s => ({ email: s.email }))];
+      hasMore = page * pageSize < total;
+      page++;
+    }
+
+    const emails = allSubscribers.map(s => s.email).filter(Boolean);
     
     if (!emails.length) {
       return NextResponse.json(
@@ -26,16 +28,18 @@ export async function GET() {
       );
     }
 
-    await throttleEmails(emails, sendFavouriteOnGithubEmail, 1500);
+    // Process emails in background
+    console.log(`Starting email sending to ${emails.length} recipients`);
+    await sendBatchEmails(emails, sendFavouriteOnGithubEmail, 10);
 
     return NextResponse.json(
-      { message: `Emails queued for ${emails.length} recipients` },
+      { message: `Emails sent to ${emails.length} recipients` },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error("Background email processing failed:", error);
     return NextResponse.json(
-      { error: "Email processing error" },
+      { error: "Background email processing error" },
       { status: 500 }
     );
   }

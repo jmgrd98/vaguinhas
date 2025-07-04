@@ -1,39 +1,55 @@
 import { NextResponse } from "next/server";
-import { emailQueue } from "@/lib/emailQueue";
+import sendBatchEmails from "@/lib/sendBatchEmails";
+import { sendNewUpdateEmail } from "@/lib/email"; // Import the specific email function
 import { getAllSubscribers } from "@/lib/mongodb";
 
 export async function GET() {
   try {
-    const subscribers = await getAllSubscribers();
-    const emails = subscribers.map(s => s.email).filter(Boolean);
+    let totalEmails = 0;
+    let page = 1;
+    const pageSize = 500;
+    let hasMore = true;
+    let allEmails: string[] = [];
 
-    if (!emails.length) {
+    // Paginated fetching
+    while (hasMore) {
+      const { subscribers, total } = await getAllSubscribers(page, pageSize);
+      const emails = subscribers.map(s => s.email).filter(Boolean);
+      
+      if (emails.length > 0) {
+        allEmails = [...allEmails, ...emails];
+        totalEmails += emails.length;
+      }
+
+      // Check if there are more pages
+      hasMore = page * pageSize < total;
+      page++;
+    }
+
+    if (totalEmails === 0) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
         { status: 400 }
       );
     }
 
-    // Add emails to queue
-    await emailQueue.addBulk(
-      emails.map(email => ({
-        name: "new-update-email",
-        data: { email },
-        opts: { 
-          removeOnComplete: true,
-          removeOnFail: 100 
-        }
-      }))
+    // Send emails in batches
+    console.log(`Starting batch email sending to ${totalEmails} recipients`);
+    await sendBatchEmails(
+      allEmails,
+      sendNewUpdateEmail, // Use your specific email function
+      10, // Batch size
+      1500 // Delay between batches (1.5s)
     );
 
     return NextResponse.json(
-      { message: `${emails.length} emails queued for sending` },
+      { message: `${totalEmails} emails processed successfully` },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Queueing failed:", error);
+    console.error("Email processing failed:", error);
     return NextResponse.json(
-      { error: "Email queueing error" },
+      { error: "Email processing error" },
       { status: 500 }
     );
   }
