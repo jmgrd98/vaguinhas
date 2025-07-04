@@ -20,21 +20,16 @@ export async function connectToDatabase() {
   return { client, db };
 }
 
-export async function getAllSubscribers(
-  page: number,
-  pageSize: number,
-  filter: Record<string, { $exists: boolean }> = {}
-) {
+export async function getAllSubscribers(page: number, pageSize: number) {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
 
-    // Count documents matching the filter
-    const total = await subscribersCollection.countDocuments(filter);
-
-    // Only project email by default
-    const subscribers = await subscribersCollection
-      .find(filter, { projection: { email: 1, _id: 0 } })
+    const total = await subscribersCollection.countDocuments();
+    const subscribers = await subscribersCollection.find(
+      {},
+      { projection: { email: 1, _id: 0 } }
+    )
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .toArray();
@@ -46,6 +41,27 @@ export async function getAllSubscribers(
   }
 }
 
+// lib/mongodb.ts
+export async function getSubscribersWithoutStacks(page: number, pageSize: number) {
+  try {
+    const { db } = await connectToDatabase();
+    const subscribersCollection = db.collection("users");
+
+    const total = await subscribersCollection.countDocuments();
+    const subscribers = await subscribersCollection.find(
+      { stacks: { $exists: false } }, // MongoDB query filter
+      { projection: { email: 1, _id: 0 } }
+    )
+    .skip((page - 1) * pageSize)
+    .limit(pageSize)
+    .toArray();
+
+    return { subscribers, total };
+  } catch (error) {
+    console.error("Failed to fetch subscribers:", error);
+    return { subscribers: [], total: 0 };
+  }
+}
 
 export async function getAllConfirmedSubscribers() {
   try {
