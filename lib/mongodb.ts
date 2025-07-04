@@ -20,16 +20,21 @@ export async function connectToDatabase() {
   return { client, db };
 }
 
-export async function getAllSubscribers(page: number, pageSize: number) {
+export async function getAllSubscribers(
+  page: number,
+  pageSize: number,
+  filter: Record<string, { $exists: boolean }> = {}
+) {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
 
-    const total = await subscribersCollection.countDocuments();
-    const subscribers = await subscribersCollection.find(
-      {},
-      { projection: { email: 1, _id: 0 } }
-    )
+    // Count documents matching the filter
+    const total = await subscribersCollection.countDocuments(filter);
+
+    // Only project email by default
+    const subscribers = await subscribersCollection
+      .find(filter, { projection: { email: 1, _id: 0 } })
       .skip((page - 1) * pageSize)
       .limit(pageSize)
       .toArray();
@@ -40,6 +45,7 @@ export async function getAllSubscribers(page: number, pageSize: number) {
     return { subscribers: [], total: 0 };
   }
 }
+
 
 export async function getAllConfirmedSubscribers() {
   try {

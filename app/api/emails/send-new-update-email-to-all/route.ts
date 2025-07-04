@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import sendBatchEmails from "@/lib/sendBatchEmails";
-import { sendNewUpdateEmail } from "@/lib/email"; // Import the specific email function
+import { sendNewUpdateEmail } from "@/lib/email";
 import { getAllSubscribers } from "@/lib/mongodb";
 
 export async function GET() {
@@ -9,38 +9,40 @@ export async function GET() {
     let page = 1;
     const pageSize = 500;
     let hasMore = true;
-    let allEmails: string[] = [];
+    const allEmails: string[] = [];
 
-    // Paginated fetching
+    // Only fetch users who do NOT have a "stacks" field
+    const filter = { stacks: { $exists: false } };
+
     while (hasMore) {
-      const { subscribers, total } = await getAllSubscribers(page, pageSize);
-      const emails = subscribers.map(s => s.email).filter(Boolean);
-      
-      if (emails.length > 0) {
-        allEmails = [...allEmails, ...emails];
+      const { subscribers, total } = await getAllSubscribers(
+        page,
+        pageSize,
+        filter
+      );
+
+      const emails = subscribers
+        .map((s) => s.email)
+        .filter(Boolean);
+
+      if (emails.length) {
+        allEmails.push(...emails);
         totalEmails += emails.length;
       }
 
-      // Check if there are more pages
       hasMore = page * pageSize < total;
       page++;
     }
 
-    if (totalEmails === 0) {
+    if (!totalEmails) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
         { status: 400 }
       );
     }
 
-    // Send emails in batches
     console.log(`Starting batch email sending to ${totalEmails} recipients`);
-    await sendBatchEmails(
-      allEmails,
-      sendNewUpdateEmail, // Use your specific email function
-      10, // Batch size
-      1500 // Delay between batches (1.5s)
-    );
+    await sendBatchEmails(allEmails, sendNewUpdateEmail, 10, 1500);
 
     return NextResponse.json(
       { message: `${totalEmails} emails processed successfully` },
