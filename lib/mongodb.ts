@@ -42,24 +42,22 @@ export async function getAllSubscribers(page: number, pageSize: number) {
 }
 
 // lib/mongodb.ts
-export async function getSubscribersWithoutStacks(page: number, pageSize: number) {
+export async function getSubscribersWithoutStacks() {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
 
-    const total = await subscribersCollection.countDocuments();
-    const subscribers = await subscribersCollection.find(
-      { stacks: { $exists: false } }, // MongoDB query filter
+    // Find users without stacks and confirmed emails
+    return await subscribersCollection.find(
+      { 
+        stacks: { $exists: false },
+        confirmed: true
+      },
       { projection: { email: 1, _id: 0 } }
-    )
-    .skip((page - 1) * pageSize)
-    .limit(pageSize)
-    .toArray();
-
-    return { subscribers, total };
+    ).toArray();
   } catch (error) {
-    console.error("Failed to fetch subscribers:", error);
-    return { subscribers: [], total: 0 };
+    console.error("Failed to fetch subscribers without stacks:", error);
+    return [];
   }
 }
 
