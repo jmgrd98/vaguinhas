@@ -146,6 +146,7 @@ export default function SubscriberAreaLoginModal({
                 
                 <div className="flex justify-end gap-3 mt-6">
                   <Button
+                    className="cursor-pointer"
                     variant="outline"
                     onClick={() => {
                       setShowResetForm(false);
@@ -156,11 +157,12 @@ export default function SubscriberAreaLoginModal({
                     Voltar
                   </Button>
                   <Button
+                    className="cursor-pointer"
                     variant="default"
                     onClick={handlePasswordReset}
                     disabled={isLoading || !validateEmail(resetEmail)}
                   >
-                    {isLoading ? "Enviando..." : "Enviar Instruções"}
+                    {isLoading ? "Enviando..." : "Enviar instruções"}
                   </Button>
                 </div>
               </>

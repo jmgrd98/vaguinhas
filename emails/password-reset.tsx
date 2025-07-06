@@ -33,8 +33,8 @@ export const PasswordResetEmail = ({ resetLink }: PasswordResetEmailProps) => (
         </Text>
         
         <Section style={buttonContainer}>
-          <Button style={button} href={resetLink}>
-            Redefinir Senha
+          <Button className="cursor-pointer" style={button} href={resetLink}>
+            Redefinir senha
           </Button>
         </Section>
         
