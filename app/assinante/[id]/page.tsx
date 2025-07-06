@@ -95,7 +95,7 @@ export default function SubscriberPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Usuário não encontrado</h1>
-          <Button onClick={() => router.push("/")}>Voltar para início</Button>
+          <Button className="cursor-pointer" onClick={() => router.push("/")}>Voltar para início</Button>
         </div>
       </div>
     );
