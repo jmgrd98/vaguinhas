@@ -160,7 +160,10 @@ export default function Home() {
             try {
               await fetch(endpoint, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+                 },
                 body: JSON.stringify({ email })
               });
             } catch (err) {
@@ -199,7 +202,10 @@ export default function Home() {
 
       const res = await fetch("/api/emails/resend-confirmation", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+         },
         body: JSON.stringify({ email: emailToResend }),
       });
 

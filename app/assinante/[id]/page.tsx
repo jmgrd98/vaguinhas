@@ -152,7 +152,7 @@ export default function SubscriberPage() {
                   setFormData({ ...formData, seniorityLevel: value })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Selecione o nível" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +173,7 @@ export default function SubscriberPage() {
                 }
                 required
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Selecione sua área" />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,9 +196,9 @@ export default function SubscriberPage() {
             <Button
               onClick={handleUpdate}
               disabled={updating}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto cursor-pointer"
             >
-              {updating ? "Atualizando…" : "Salvar Alterações"}
+              {updating ? "Atualizando…" : "Salvar alterações"}
             </Button>
           </div>
         </div>

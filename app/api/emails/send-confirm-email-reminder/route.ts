@@ -1,31 +1,66 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-// import { sendConfirmEmailReminder } from '@/lib/resend';
 import { sendConfirmEmailReminder } from '@/lib/email';
 import generateConfirmationToken from '@/lib/generateConfirmationToken';
-import sendBatchEmails from '@/lib/sendBatchEmails';
+import { LRUCache } from "lru-cache";
 
-export async function GET() {
+const rateLimitCache = process.env.NODE_ENV === "production" 
+  ? new LRUCache<string, number[]>({
+      max: 100,
+      ttl: 30 * 60 * 1000, // 30 minutes
+    })
+  : null;
+
+function isRateLimited(token: string, limit = 5) {
+  // Bypass rate limiting in non-production environments
+  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
+  
+  const tokenCount = rateLimitCache.get(token) || [0];
+  if (tokenCount[0] >= limit) return true;
+  
+  rateLimitCache.set(token, [tokenCount[0] + 1]);
+  return false;
+}
+
+
+export async function GET(req: Request) {
+  const token = req.headers.get('authorization')?.split(' ')[1];
+  if (!token || token !== process.env.JWT_SECRET) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+
+  if (isRateLimited(token)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again in 30 minutes." },
+        { status: 429 }
+      );
+    }
+
   try {
     const { db } = await connectToDatabase();
+    
+    // Calculate time thresholds
     const now = new Date();
     
+    // Find unconfirmed users who need reminders
     const users = await db.collection("users").find({
       confirmed: false,
     }).toArray();
     
     let processed = 0;
     let skipped = 0;
-
-    // Prepare email sending tasks
-    const emailTasks: (() => Promise<void>)[] = [];
     
     for (const user of users) {
       try {
+        // Generate new token with 7-day expiration
         const newToken = generateConfirmationToken();
         const newExpiry = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
         
-        // Update user first - this doesn't need to be batched
+        // Update user with new token and reminder tracking
         const updateResult = await db.collection("users").updateOne(
           { _id: user._id },
           { 
@@ -43,35 +78,13 @@ export async function GET() {
           continue;
         }
         
-        // Create email sending task
-        emailTasks.push(async () => {
-          try {
-            await sendConfirmEmailReminder(user.email, newToken);
-            processed++;
-          } catch (error) {
-            console.error(`Failed to send to ${user.email}:`, error);
-            skipped++;
-          }
-        });
+        // Send email with exponential backoff
+        await sendConfirmEmailReminder(user.email, newToken);
+        processed++;
       } catch (error) {
         console.error(`Failed to process user ${user.email}:`, error);
         skipped++;
       }
-    }
-
-    // Execute email tasks in batches
-    if (emailTasks.length > 0) {
-      console.log(`Processing ${emailTasks.length} email tasks in batches`);
-      
-      // We'll use our existing batch email function by wrapping the tasks
-      await sendBatchEmails(
-        emailTasks.map((_, i) => i.toString()), // Dummy "emails" array
-        async (index) => {
-          await emailTasks[parseInt(index)]();
-        },
-        5, // Batch size
-        1500 // Delay between batches
-      );
     }
 
     return NextResponse.json({
@@ -81,7 +94,7 @@ export async function GET() {
   } catch (error) {
     console.error('Cron job error:', error);
     return NextResponse.json(
-      { message: 'Internal Server Error' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

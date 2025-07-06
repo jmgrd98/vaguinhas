@@ -2,23 +2,44 @@ import { NextResponse, NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { LRUCache } from "lru-cache";
 
-// Initialize rate limiter
-const ratelimit = new Ratelimit({
+// Initialize IP-based rate limiter (Upstash Redis)
+const ipRatelimit = new Ratelimit({
   redis: Redis.fromEnv(),
   limiter: Ratelimit.slidingWindow(10, "60 s"), // 10 requests per minute
   analytics: true,
 });
 
+// Initialize token-based rate limiter (in-memory)
+const tokenRateLimitCache = process.env.NODE_ENV === "production" 
+  ? new LRUCache<string, number[]>({
+      max: 100,
+      ttl: 30 * 60 * 1000, // 30 minutes
+    })
+  : null;
+
+function isTokenRateLimited(token: string, limit = 5) {
+  if (!tokenRateLimitCache || process.env.NODE_ENV !== "production") return false;
+  
+  const tokenCount = tokenRateLimitCache.get(token) || [0];
+  if (tokenCount[0] >= limit) return true;
+  
+  tokenRateLimitCache.set(token, [tokenCount[0] + 1]);
+  return false;
+}
+
+// CORS headers configuration
+const getCorsHeaders = () => ({
+  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+    ? '*' 
+    : 'https://www.vaguinhas.com.br',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+});
+
 export async function GET(request: NextRequest) {
-  // CORS headers configuration
-  const headers = {
-    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-      ? '*' 
-      : 'https://www.vaguinhas.com.br',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
+  const headers = getCorsHeaders();
 
   try {
     // Handle OPTIONS requests
@@ -26,26 +47,45 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { headers });
     }
 
-    // Rate limiting
+    // IP-based rate limiting
     const ip = request.headers.get("cf-connecting-ip") || 
                request.headers.get("x-forwarded-for") || 
                request.headers.get("x-real-ip") || 
                "127.0.0.1";
     
-    const { success } = await ratelimit.limit(ip);
+    const ipRateLimitResult = await ipRatelimit.limit(ip);
     
-    if (!success) {
+    if (!ipRateLimitResult.success) {
       return NextResponse.json(
         { message: "Muitas solicitações. Tente novamente mais tarde." },
         { status: 429, headers }
       );
     }
 
-    // Validate token
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get('token');
+    // JWT Authentication
+    const token = request.headers.get('authorization')?.split(' ')[1];
+    if (token) {
+      // Token-based rate limiting (for automated systems)
+      if (!token || token !== process.env.JWT_SECRET) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401, headers }
+        );
+      }
 
-    if (!token || token.length !== 64) { // Assuming 64-character tokens
+      if (isTokenRateLimited(token)) {
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Try again in 30 minutes." },
+          { status: 429, headers }
+        );
+      }
+    }
+
+    // Validate confirmation token
+    const { searchParams } = new URL(request.url);
+    const confirmationToken = searchParams.get('token');
+
+    if (!confirmationToken || confirmationToken.length !== 64) {
       return NextResponse.json(
         { message: "Token inválido" },
         { status: 400, headers }
@@ -55,7 +95,7 @@ export async function GET(request: NextRequest) {
     // Database operations
     const { db } = await connectToDatabase();
     const user = await db.collection("users").findOne({
-      confirmationToken: token,
+      confirmationToken: confirmationToken,
       confirmationExpires: { $gt: new Date() }
     });
 
@@ -79,7 +119,7 @@ export async function GET(request: NextRequest) {
       {
         $set: { 
           confirmed: true,
-          confirmedAt: new Date()  // Add confirmation timestamp
+          confirmedAt: new Date()
         },
         $unset: { 
           confirmationToken: "", 
@@ -108,12 +148,6 @@ export async function GET(request: NextRequest) {
 // OPTIONS handler for CORS preflight
 export async function OPTIONS() {
   return new NextResponse(null, {
-    headers: {
-      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-        ? '*' 
-        : 'https://www.vaguinhas.com.br',
-      'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type'
-    }
+    headers: getCorsHeaders()
   });
 }
