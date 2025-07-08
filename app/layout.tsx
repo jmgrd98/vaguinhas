@@ -38,7 +38,23 @@ export default function RootLayout({
           className={`${geistSans.variable} ${geistMono.variable} ${caprasimo.variable} antialiased`}
         >
           {children}
-          <Toaster closeButton duration={5000} />
+          <Toaster 
+            closeButton
+            duration={5000}
+            position="bottom-right"
+            richColors
+            toastOptions={{
+              // Default options
+              duration: 5000,
+              style: {
+                borderRadius: '8px',
+                background: '#1a202c',    // dark gray
+                color: '#edf2f7',         // light gray
+                padding: '16px',
+                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
+              }
+          }}
+          />
         </body>
     </html>
   );

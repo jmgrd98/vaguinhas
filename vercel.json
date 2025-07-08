@@ -1,0 +1,12 @@
+{
+    "crons": [
+        {
+            "path": "/api/send-feedback-email",
+            "schedule": "0 8 * * 2"
+        },
+        {
+            "path": "/api/send-favourite-on-github-email-to-all",
+            "schedule": "0 16 * * 4"
+        }
+    ]
+}
