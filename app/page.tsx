@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-import { signIn, signOut, useSession } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
@@ -96,6 +96,7 @@ export default function Home() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSelectionError, setShowSelectionError] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -243,15 +244,16 @@ export default function Home() {
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
 
-       {session ? (
-        <>
-          <p>Welcome, {session.user?.name}</p>
-          <Button onClick={() => signOut()}>Sign out</Button>
-        </>
-      ) : (
-        <Button onClick={() => signIn("google")}>
+       {!session && (
+        <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
           <FaGoogle className="mr-2" /> Sign in with Google
         </Button>
+      )}
+
+      {showSelectionError && (
+        <p className="text-red-500 text-sm w-full text-center">
+          Por favor, selecione sua área e nível profissional primeiro.
+        </p>
       )}
 
       <Input
@@ -310,6 +312,27 @@ export default function Home() {
       </Button>
     </div>
   );
+
+   const handleGoogleSignIn = useCallback(() => {
+      if (!stack || !seniorityLevel) {
+        setShowSelectionError(true);
+        return;
+      }
+      setShowSelectionError(false);
+
+      // build an *absolute* callback URL INCLUDING your two params
+      const cb = `${window.location.origin}/auth/callback`
+              + `?stack=${encodeURIComponent(stack)}`
+              + `&seniorityLevel=${encodeURIComponent(seniorityLevel)}`;
+
+      // tell NextAuth exactly where to redirect after OAuth
+      signIn("google", { callbackUrl: cb, redirect: false })
+        .then((response) => {
+          if (response?.url) window.location.href = response.url;
+        });
+    }, [stack, seniorityLevel]);
+
+
 
   return (
     <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
