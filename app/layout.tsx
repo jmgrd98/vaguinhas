@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Caprasimo } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/sonner";
+import Providers from "@/app/Providers";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "./api/auth/[...nextauth]/route";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,35 +29,20 @@ export const metadata: Metadata = {
   }
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} ${caprasimo.variable} antialiased`}
-        >
+      <body className={`${geistSans.variable} ${geistMono.variable} ${caprasimo.variable} antialiased`}>
+        <Providers session={session}>
           {children}
-          <Toaster 
-            closeButton
-            duration={5000}
-            position="bottom-right"
-            richColors
-            toastOptions={{
-              // Default options
-              duration: 5000,
-              style: {
-                borderRadius: '8px',
-                background: '#1a202c',    // dark gray
-                color: '#edf2f7',         // light gray
-                padding: '16px',
-                boxShadow: '0 4px 14px rgba(0, 0, 0, 0.1)',
-              }
-          }}
-          />
-        </body>
+        </Providers>
+      </body>
     </html>
   );
 }

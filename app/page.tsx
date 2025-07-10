@@ -9,7 +9,7 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp, FaGithub } from "react-icons/fa";
+import { FaWhatsapp, FaGithub, FaGoogle } from "react-icons/fa";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
+import { signIn, signOut, useSession } from "next-auth/react";
+
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -99,6 +101,10 @@ export default function Home() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const { data: session } = useSession();
+
+  // if (status === "loading") return <p>Loading…</p>;
 
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
@@ -236,6 +242,17 @@ export default function Home() {
       <p className="mb-2 text-lg sm:text-xl font-bold text-center">
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
+
+       {session ? (
+        <>
+          <p>Welcome, {session.user?.name}</p>
+          <Button onClick={() => signOut()}>Sign out</Button>
+        </>
+      ) : (
+        <Button onClick={() => signIn("google")}>
+          <FaGoogle className="mr-2" /> Sign in with Google
+        </Button>
+      )}
 
       <Input
         ref={inputRef}
