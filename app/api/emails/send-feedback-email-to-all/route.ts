@@ -4,36 +4,51 @@ import { getAllSubscribers } from "@/lib/mongodb";
 import sendBatchEmails from "@/lib/sendBatchEmails";
 import { LRUCache } from "lru-cache";
 
-// Initialize rate limiter only in production
-const rateLimitCache = process.env.NODE_ENV === "production" 
-  ? new LRUCache<string, number[]>({
-      max: 100,
-      ttl: 30 * 60 * 1000, // 30 minutes
-    })
-  : null;
+// Rate‑limiter (only in prod)
+const rateLimitCache =
+  process.env.NODE_ENV === "production"
+    ? new LRUCache<string, number[]>({
+        max: 100,
+        ttl: 30 * 60 * 1000, // 30 minutes
+      })
+    : null;
 
+/** 
+ * Returns true if this token has hit its 5‑call limit (30 min window).
+ */
 function isRateLimited(token: string, limit = 5) {
-  // Bypass rate limiting in non-production environments
   if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
-  
-  const tokenCount = rateLimitCache.get(token) || [0];
-  if (tokenCount[0] >= limit) return true;
-  
-  rateLimitCache.set(token, [tokenCount[0] + 1]);
+
+  const countArr = rateLimitCache.get(token) || [0];
+  if (countArr[0] >= limit) return true;
+
+  rateLimitCache.set(token, [countArr[0] + 1]);
   return false;
 }
 
+/**
+ * Check bearer token against:
+ *  - VERCEL’s CRON_SECRET (cron jobs)
+ *  - Your JWT_SECRET         (manual or client calls)
+ */
+function isAuthorized(req: Request) {
+  const header = req.headers.get("authorization") || "";
+  const token = header.split(" ")[1] || "";
+  const { CRON_SECRET, JWT_SECRET } = process.env;
+  return (
+    (CRON_SECRET && token === CRON_SECRET) ||
+    (JWT_SECRET && token === JWT_SECRET)
+  );
+}
+
 export async function GET(req: Request) {
-  // Authentication
-  const token = req.headers.get('authorization')?.split(' ')[1];
-  if (!token || token !== process.env.JWT_SECRET) {
-    return NextResponse.json(
-      { error: "Unauthorized" },
-      { status: 401 }
-    );
+  // 1) Auth
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Rate limiting (production only)
+  // 2) Rate limit (prod only)
+  const token = req.headers.get("authorization")!.split(" ")[1]!;
   if (isRateLimited(token)) {
     return NextResponse.json(
       { error: "Rate limit exceeded. Try again in 30 minutes." },
@@ -42,39 +57,38 @@ export async function GET(req: Request) {
   }
 
   try {
-    let allSubscribers: { email: string }[] = [];
+    // 3) Fetch subscribers in pages
+    const allSubscribers: { email: string }[] = [];
     let page = 1;
     const pageSize = 500;
     let hasMore = true;
 
-    // Paginated fetching to handle large datasets
     while (hasMore) {
       console.log("Fetching subscribers page:", page);
       const { subscribers, total } = await getAllSubscribers(page, pageSize);
-      allSubscribers = [...allSubscribers, ...subscribers.map(s => ({ email: s.email }))];
-      
-      // Check if we've fetched all records
+      allSubscribers.push(
+        ...subscribers.map((s) => ({ email: s.email }))
+      );
       hasMore = page * pageSize < total;
       page++;
     }
 
-    const emails = allSubscribers.map(s => s.email).filter(Boolean);
-    
-    if (!emails.length) {
+    const emails = allSubscribers.map((s) => s.email).filter(Boolean);
+    if (emails.length === 0) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
         { status: 400 }
       );
     }
+
+    // 4) Send emails (10 at a time, 1.5 s between batches)
     console.log(`Starting batch email sending to ${emails.length} recipients`);
-    
-    // Send with safe defaults
     await sendBatchEmails(emails, sendFeedbackEmail, 10, 1500);
 
     return NextResponse.json(
-      { 
+      {
         message: `Emails processed for ${emails.length} recipients`,
-        recipients: emails.length
+        recipients: emails.length,
       },
       { status: 200 }
     );
