@@ -22,13 +22,13 @@ const ratelimit = new Ratelimit({
 
 // Webhook trigger function with type safety
 const triggerMakeWebhook = async (data: WebhookPayload): Promise<void> => {
-  const WEBHOOK_URL = process.env.MAKE_WEBHOOK_URL;
+  const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
   
   if (!WEBHOOK_URL) {
     console.error("Make webhook URL not configured");
     return;
   }
-  console.log('DATA', data)
+
   try {
     await fetch(WEBHOOK_URL, {
       method: "POST",
