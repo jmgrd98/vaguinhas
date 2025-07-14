@@ -234,7 +234,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Inline CSS
     const inlined = juice(fullEmail);
 
-    return NextResponse.json({ email, html: inlined }, { status: 200 });
+    return new NextResponse(inlined, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
     
   } catch (error: unknown) {
     console.error('Error processing email:', error);
