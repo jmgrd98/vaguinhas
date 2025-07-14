@@ -46,7 +46,10 @@ export default function SubscriberAreaLoginModal({
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+         },
         body: JSON.stringify({ 
           email: accessEmail, 
           password: accessPassword  
@@ -143,6 +146,7 @@ export default function SubscriberAreaLoginModal({
                 
                 <div className="flex justify-end gap-3 mt-6">
                   <Button
+                    className="cursor-pointer"
                     variant="outline"
                     onClick={() => {
                       setShowResetForm(false);
@@ -153,11 +157,12 @@ export default function SubscriberAreaLoginModal({
                     Voltar
                   </Button>
                   <Button
+                    className="cursor-pointer"
                     variant="default"
                     onClick={handlePasswordReset}
                     disabled={isLoading || !validateEmail(resetEmail)}
                   >
-                    {isLoading ? "Enviando..." : "Enviar Instruções"}
+                    {isLoading ? "Enviando..." : "Enviar instruções"}
                   </Button>
                 </div>
               </>

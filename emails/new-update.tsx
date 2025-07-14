@@ -55,7 +55,7 @@ const NewUpdateEmail: React.FC<NewUpdateEmailProps> = ({
 
             <Text style={textStyle}>
               Nós lançamos uma nova atualização em 
-              <a href='https://vaguinhas.com.br' target='_blank' rel='noopener noreferrer' style={linkStyle}> nosso site</a> que te permite escolher entre receber vagas apenas de frontend, backend, mobile ou design UI/UX!
+              <a href='https://vaguinhas.com.br' target='_blank' rel='noopener noreferrer' style={linkStyle}> nosso site</a> que te permite escolher entre receber vagas apenas de frontend, backend, fullstack, mobile, dados ou design UI/UX!
             </Text>
 
             <Text style={textStyle}>

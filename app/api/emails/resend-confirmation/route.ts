@@ -1,6 +1,5 @@
 import { NextResponse, NextRequest } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-// import { sendConfirmationEmail } from '@/lib/resend';
 import { sendConfirmationEmail } from '@/lib/email';
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
@@ -8,13 +7,32 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { generatePassword } from "@/lib/generatePassword";
 import generateConfirmationToken from '@/lib/generateConfirmationToken';
+import { LRUCache } from "lru-cache";
 
-// Initialize rate limiter
-const ratelimit = new Ratelimit({
+// Initialize Upstash rate limiter
+const ipRatelimit = new Ratelimit({
   redis: Redis.fromEnv(),
   limiter: Ratelimit.slidingWindow(3, "60 s"),
   analytics: true,
 });
+
+// Initialize token-based rate limiter (in-memory)
+const tokenRateLimitCache = process.env.NODE_ENV === "production" 
+  ? new LRUCache<string, number[]>({
+      max: 100,
+      ttl: 30 * 60 * 1000, // 30 minutes
+    })
+  : null;
+
+function isTokenRateLimited(token: string, limit = 5) {
+  if (!tokenRateLimitCache || process.env.NODE_ENV !== "production") return false;
+  
+  const tokenCount = tokenRateLimitCache.get(token) || [0];
+  if (tokenCount[0] >= limit) return true;
+  
+  tokenRateLimitCache.set(token, [tokenCount[0] + 1]);
+  return false;
+}
 
 // Zod schema for validation
 const resendSchema = z.object({
@@ -23,15 +41,17 @@ const resendSchema = z.object({
 
 const SALT_ROUNDS = 12;
 
+// CORS headers configuration
+const getCorsHeaders = () => ({
+  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+    ? '*' 
+    : 'https://www.vaguinhas.com.br',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+});
+
 export async function POST(request: NextRequest) {
-  // CORS headers configuration
-  const headers = {
-    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-      ? '*' 
-      : 'https://www.vaguinhas.com.br',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  };
+  const headers = getCorsHeaders();
 
   try {
     // Handle OPTIONS requests
@@ -39,19 +59,42 @@ export async function POST(request: NextRequest) {
       return new NextResponse(null, { headers });
     }
 
-    // Rate limiting
-    const ip = request.headers.get("cf-connecting-ip") || 
-               request.headers.get("x-forwarded-for") || 
-               request.headers.get("x-real-ip") || 
-               "127.0.0.1";
+    // JWT Authentication (if provided)
+    const authToken = request.headers.get('authorization')?.split(' ')[1];
+    let isSystemRequest = false;
     
-    const { success } = await ratelimit.limit(ip);
-    
-    if (!success) {
-      return NextResponse.json(
-        { message: "Muitas solicitações. Tente novamente mais tarde." },
-        { status: 429, headers }
-      );
+    if (authToken) {
+      // Validate JWT
+      if (authToken !== process.env.JWT_SECRET) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401, headers }
+        );
+      }
+      
+      // Apply token-based rate limiting for system requests
+      isSystemRequest = true;
+      if (isTokenRateLimited(authToken)) {
+        return NextResponse.json(
+          { error: "Rate limit exceeded. Try again in 30 minutes." },
+          { status: 429, headers }
+        );
+      }
+    } else {
+      // Apply IP-based rate limiting for user requests
+      const ip = request.headers.get("cf-connecting-ip") || 
+                 request.headers.get("x-forwarded-for") || 
+                 request.headers.get("x-real-ip") || 
+                 "127.0.0.1";
+      
+      const { success } = await ipRatelimit.limit(ip);
+      
+      if (!success) {
+        return NextResponse.json(
+          { message: "Muitas solicitações. Tente novamente mais tarde." },
+          { status: 429, headers }
+        );
+      }
     }
 
     // Validate request body
@@ -109,7 +152,10 @@ export async function POST(request: NextRequest) {
     await sendConfirmationEmail(email, confirmationToken, newPassword);
 
     return NextResponse.json(
-      { message: "E-mail de confirmação reenviado com sua senha" },
+      { 
+        message: "E-mail de confirmação reenviado com sua senha",
+        systemRequest: isSystemRequest
+      },
       { status: 200, headers }
     );
   } catch (error) {
@@ -119,4 +165,11 @@ export async function POST(request: NextRequest) {
       { status: 500, headers }
     );
   }
+}
+
+// OPTIONS handler for CORS preflight
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    headers: getCorsHeaders()
+  });
 }

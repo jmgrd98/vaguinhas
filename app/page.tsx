@@ -27,6 +27,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
+import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -92,6 +93,7 @@ export default function Home() {
   const [validationError, setValidationError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -150,6 +152,7 @@ export default function Home() {
         setCanResend(false);
         setStatus("success");
         setShowConfetti(true);
+        setShowSuccessModal(true);
         setEmail("");
         setSeniorityLevel("");
         setStack("");
@@ -160,7 +163,10 @@ export default function Home() {
             try {
               await fetch(endpoint, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+                 },
                 body: JSON.stringify({ email })
               });
             } catch (err) {
@@ -199,7 +205,10 @@ export default function Home() {
 
       const res = await fetch("/api/emails/resend-confirmation", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+         },
         body: JSON.stringify({ email: emailToResend }),
       });
 
@@ -247,9 +256,10 @@ export default function Home() {
           {[
             'frontend',
             'backend',
+            'fullstack',
             'mobile',
             // 'devops',
-            // 'dados',
+            'dados',
             'design'
           ].map(area => (
             <SelectItem key={area} value={area}>
@@ -282,25 +292,6 @@ export default function Home() {
         {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
       </Button>
     </div>
-  );
-
-  // Success alert
-  const renderSuccessAlert = () => (
-    <Alert className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
-      <AlertTitle>Cadastro feito!</AlertTitle>
-      <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
-        <span>Enviamos um link de confirmação para seu e-mail.</span>
-        <button
-          onClick={() => resendConfirmation(localStorage.getItem("confirmationEmail") || "")}
-          className={`text-blue-500 font-bold ml-0 sm:ml-1 ${
-            !canResend ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:underline"
-          }`}
-          disabled={!canResend}
-        >
-          {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar confirmação"}
-        </button>
-      </AlertDescription>
-    </Alert>
   );
 
   return (
@@ -355,7 +346,7 @@ export default function Home() {
             <AlertDescription>Falha ao salvar. Tente novamente.</AlertDescription>
           </Alert>
         )}
-        {status === "success" && renderSuccessAlert()}
+        {/* {status === "success" && renderSuccessAlert()} */}
       </main>
 
       <footer className="py-4 sm:py-6 w-full text-center border-t border-gray-200 dark:border-gray-700">
@@ -368,6 +359,14 @@ export default function Home() {
           Desenvolvido por João Marcelo Dantas
         </a>
       </footer>
+
+      <SubscriptionSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        resendConfirmation={resendConfirmation}
+        cooldown={cooldown}
+        canResend={canResend}
+      />
 
       <TooltipProvider>
         <Tooltip>

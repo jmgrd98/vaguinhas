@@ -1,41 +1,106 @@
 import { NextResponse } from "next/server";
-// import { sendFavouriteOnGithubEmail } from "@/lib/resend";
 import { sendFavouriteOnGithubEmail } from "@/lib/email";
 import { getAllSubscribers } from "@/lib/mongodb";
+import sendBatchEmails from "@/lib/sendBatchEmails";
+import { LRUCache } from "lru-cache";
 
-async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
-  for (const email of emails) {
-    try {
-      await sendFn(email);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (error) {
-      console.error(`Failed to send to ${email}:`, error);
-    }
-  }
+// Initialize rate limiter only in production
+const rateLimitCache =
+  process.env.NODE_ENV === "production"
+    ? new LRUCache<string, number[]>({
+        max: 100,
+        ttl: 30 * 60 * 1000, // 30 minutes
+      })
+    : null;
+
+/**
+ * Return true if this token has hit the rate-limit.
+ * Only enforced in production.
+ */
+function isRateLimited(token: string, limit = 5) {
+  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
+
+  const tokenCount = rateLimitCache.get(token) || [0];
+  if (tokenCount[0] >= limit) return true;
+
+  rateLimitCache.set(token, [tokenCount[0] + 1]);
+  return false;
 }
 
-export async function GET() {
+/**
+ * Validate incoming bearer token against:
+ *  - CRON_SECRET (injected by Vercel on every cron call)
+ *  - JWT_SECRET  (for any manual calls you might do)
+ */
+function isAuthorized(req: Request) {
+  const auth = req.headers.get("authorization") || "";
+  const token = auth.split(" ")[1] || "";
+  const { CRON_SECRET, JWT_SECRET } = process.env;
+
+  return (
+    (CRON_SECRET && token === CRON_SECRET) ||
+    (JWT_SECRET && token === JWT_SECRET)
+  );
+}
+
+export async function GET(req: Request) {
+  // 1) Authenticate
+  if (!isAuthorized(req)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // 2) Rate-limit cron calls (only in prod)
+  //    We key by the cron secret so each schedule counts separately
+  const token = req.headers.get("authorization")!.split(" ")[1]!;
+  if (isRateLimited(token)) {
+    return NextResponse.json(
+      { error: "Rate limit exceeded. Try again in 30 minutes." },
+      { status: 429 }
+    );
+  }
+
   try {
-    const subscribers = await getAllSubscribers();
-    const emails = subscribers.map(s => s.email).filter(Boolean);
-    
-    if (!emails.length) {
+    // 3) Fetch all subscribers in pages
+    let allSubscribers: { email: string }[] = [];
+    let page = 1;
+    const pageSize = 500;
+    let hasMore = true;
+
+    while (hasMore) {
+      console.log("Fetching subscribers page:", page);
+      const { subscribers, total } = await getAllSubscribers(page, pageSize);
+      allSubscribers = [
+        ...allSubscribers,
+        ...subscribers.map((s) => ({ email: s.email })),
+      ];
+      hasMore = page * pageSize < total;
+      page++;
+    }
+
+    const emails = allSubscribers.map((s) => s.email).filter(Boolean);
+
+    if (emails.length === 0) {
       return NextResponse.json(
         { error: "No valid subscribers found" },
         { status: 400 }
       );
     }
 
-    await throttleEmails(emails, sendFavouriteOnGithubEmail, 1500);
+    // 4) Send in batches
+    console.log(`Starting email sending to ${emails.length} recipients`);
+    await sendBatchEmails(emails, sendFavouriteOnGithubEmail, 10);
 
     return NextResponse.json(
-      { message: `Emails queued for ${emails.length} recipients` },
+      {
+        message: `Emails sent to ${emails.length} recipients`,
+        recipients: emails.length,
+      },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Email sending failed:", error);
+    console.error("Background email processing failed:", error);
     return NextResponse.json(
-      { error: "Email processing error" },
+      { error: "Background email processing error" },
       { status: 500 }
     );
   }

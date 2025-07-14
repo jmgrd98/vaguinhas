@@ -95,7 +95,7 @@ export default function SubscriberPage() {
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Usuário não encontrado</h1>
-          <Button onClick={() => router.push("/")}>Voltar para início</Button>
+          <Button className="cursor-pointer" onClick={() => router.push("/")}>Voltar para início</Button>
         </div>
       </div>
     );
@@ -152,7 +152,7 @@ export default function SubscriberPage() {
                   setFormData({ ...formData, seniorityLevel: value })
                 }
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Selecione o nível" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +173,7 @@ export default function SubscriberPage() {
                 }
                 required
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full cursor-pointer">
                   <SelectValue placeholder="Selecione sua área" />
                 </SelectTrigger>
                 <SelectContent>
@@ -196,9 +196,9 @@ export default function SubscriberPage() {
             <Button
               onClick={handleUpdate}
               disabled={updating}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto cursor-pointer"
             >
-              {updating ? "Atualizando…" : "Salvar Alterações"}
+              {updating ? "Atualizando…" : "Salvar alterações"}
             </Button>
           </div>
         </div>

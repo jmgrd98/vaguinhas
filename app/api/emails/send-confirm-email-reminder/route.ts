@@ -1,15 +1,44 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { sendConfirmEmailReminder } from '@/lib/resend';
+import { sendConfirmEmailReminder } from '@/lib/email';
 import generateConfirmationToken from '@/lib/generateConfirmationToken';
+import { LRUCache } from "lru-cache";
 
-export async function GET() {
-  // Enhanced secret validation
-  // const secret = request.nextUrl.searchParams.get('secret');
-  // if (!secret || secret !== process.env.CRON_SECRET) {
-  //   console.warn('Unauthorized cron job attempt');
-  //   return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
-  // }
+const rateLimitCache = process.env.NODE_ENV === "production" 
+  ? new LRUCache<string, number[]>({
+      max: 100,
+      ttl: 30 * 60 * 1000, // 30 minutes
+    })
+  : null;
+
+function isRateLimited(token: string, limit = 5) {
+  // Bypass rate limiting in non-production environments
+  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
+  
+  const tokenCount = rateLimitCache.get(token) || [0];
+  if (tokenCount[0] >= limit) return true;
+  
+  rateLimitCache.set(token, [tokenCount[0] + 1]);
+  return false;
+}
+
+
+export async function GET(req: Request) {
+  const token = req.headers.get('authorization')?.split(' ')[1];
+  if (!token || token !== process.env.JWT_SECRET) {
+    return NextResponse.json(
+      { error: "Unauthorized" },
+      { status: 401 }
+    );
+  }
+
+
+  if (isRateLimited(token)) {
+      return NextResponse.json(
+        { error: "Rate limit exceeded. Try again in 30 minutes." },
+        { status: 429 }
+      );
+    }
 
   try {
     const { db } = await connectToDatabase();
@@ -65,7 +94,7 @@ export async function GET() {
   } catch (error) {
     console.error('Cron job error:', error);
     return NextResponse.json(
-      { message: 'Internal Server Error' },
+      { error: 'Internal Server Error' },
       { status: 500 }
     );
   }

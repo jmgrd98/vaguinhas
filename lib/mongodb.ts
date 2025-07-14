@@ -20,19 +20,43 @@ export async function connectToDatabase() {
   return { client, db };
 }
 
-export async function getAllSubscribers() {
+export async function getAllSubscribers(page: number, pageSize: number) {
   try {
     const { db } = await connectToDatabase();
     const subscribersCollection = db.collection("users");
 
-    const subscribers =  await subscribersCollection.find(
+    const total = await subscribersCollection.countDocuments();
+    const subscribers = await subscribersCollection.find(
       {},
       { projection: { email: 1, _id: 0 } }
-    ).toArray();
+    )
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .toArray();
 
-    return subscribers;
+    return { subscribers, total };
   } catch (error) {
     console.error("Failed to fetch subscribers:", error);
+    return { subscribers: [], total: 0 };
+  }
+}
+
+// lib/mongodb.ts
+export async function getSubscribersWithoutStacks() {
+  try {
+    const { db } = await connectToDatabase();
+    const subscribersCollection = db.collection("users");
+
+    // Find users without stacks and confirmed emails
+    return await subscribersCollection.find(
+      { 
+        stacks: { $exists: false },
+        confirmed: true
+      },
+      { projection: { email: 1, _id: 0 } }
+    ).toArray();
+  } catch (error) {
+    console.error("Failed to fetch subscribers without stacks:", error);
     return [];
   }
 }
