@@ -2,44 +2,54 @@ import { NextResponse, NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { LRUCache } from "lru-cache";
 
-// Initialize IP-based rate limiter (Upstash Redis)
-const ipRatelimit = new Ratelimit({
+// Define webhook payload type
+interface WebhookPayload {
+  event: "email_confirmed";
+  email: string;
+  seniorityLevel: string;
+  stack: string;
+  timestamp: string;
+  confirmedAt: string;
+}
+
+// Initialize rate limiter
+const ratelimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, "60 s"), // 10 requests per minute
+  limiter: Ratelimit.slidingWindow(10, "60 s"),
   analytics: true,
 });
 
-// Initialize token-based rate limiter (in-memory)
-const tokenRateLimitCache = process.env.NODE_ENV === "production" 
-  ? new LRUCache<string, number[]>({
-      max: 100,
-      ttl: 30 * 60 * 1000, // 30 minutes
-    })
-  : null;
-
-function isTokenRateLimited(token: string, limit = 5) {
-  if (!tokenRateLimitCache || process.env.NODE_ENV !== "production") return false;
+// Webhook trigger function with type safety
+const triggerMakeWebhook = async (data: WebhookPayload): Promise<void> => {
+  const WEBHOOK_URL = process.env.N8N_WEBHOOK_URL;
   
-  const tokenCount = tokenRateLimitCache.get(token) || [0];
-  if (tokenCount[0] >= limit) return true;
-  
-  tokenRateLimitCache.set(token, [tokenCount[0] + 1]);
-  return false;
-}
+  if (!WEBHOOK_URL) {
+    console.error("Make webhook URL not configured");
+    return;
+  }
 
-// CORS headers configuration
-const getCorsHeaders = () => ({
-  'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
-    ? '*' 
-    : 'https://www.vaguinhas.com.br',
-  'Access-Control-Allow-Methods': 'GET, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-});
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    console.log(`Webhook triggered for ${data.email}`);
+  } catch (error) {
+    console.error("Make.com webhook failed:", error);
+  }
+};
 
 export async function GET(request: NextRequest) {
-  const headers = getCorsHeaders();
+  // CORS headers configuration
+  const headers = {
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+      ? '*' 
+      : 'https://www.vaguinhas.com.br',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
 
   try {
     // Handle OPTIONS requests
@@ -47,45 +57,26 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { headers });
     }
 
-    // IP-based rate limiting
+    // Rate limiting
     const ip = request.headers.get("cf-connecting-ip") || 
                request.headers.get("x-forwarded-for") || 
                request.headers.get("x-real-ip") || 
                "127.0.0.1";
     
-    const ipRateLimitResult = await ipRatelimit.limit(ip);
+    const { success } = await ratelimit.limit(ip);
     
-    if (!ipRateLimitResult.success) {
+    if (!success) {
       return NextResponse.json(
         { message: "Muitas solicitações. Tente novamente mais tarde." },
         { status: 429, headers }
       );
     }
 
-    // JWT Authentication
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (token) {
-      // Token-based rate limiting (for automated systems)
-      if (!token || token !== process.env.JWT_SECRET) {
-        return NextResponse.json(
-          { error: "Unauthorized" },
-          { status: 401, headers }
-        );
-      }
-
-      if (isTokenRateLimited(token)) {
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Try again in 30 minutes." },
-          { status: 429, headers }
-        );
-      }
-    }
-
-    // Validate confirmation token
+    // Validate token
     const { searchParams } = new URL(request.url);
-    const confirmationToken = searchParams.get('token');
+    const token = searchParams.get('token');
 
-    if (!confirmationToken || confirmationToken.length !== 64) {
+    if (!token || token.length !== 64) {
       return NextResponse.json(
         { message: "Token inválido" },
         { status: 400, headers }
@@ -95,7 +86,7 @@ export async function GET(request: NextRequest) {
     // Database operations
     const { db } = await connectToDatabase();
     const user = await db.collection("users").findOne({
-      confirmationToken: confirmationToken,
+      confirmationToken: token,
       confirmationExpires: { $gt: new Date() }
     });
 
@@ -132,14 +123,27 @@ export async function GET(request: NextRequest) {
       throw new Error("Failed to update user confirmation status");
     }
 
+    // Trigger webhook with type-safe payload
+    const payload: WebhookPayload = {
+      event: "email_confirmed",
+      email: user.email,
+      seniorityLevel: user.seniorityLevel,
+      stack: user.stacks[0], // Using the first stack
+      timestamp: new Date().toISOString(),
+      confirmedAt: new Date().toISOString()
+    };
+
+    // Fire and forget - no need to await
+    triggerMakeWebhook(payload);
+
     return NextResponse.json(
       { message: "E-mail confirmado com sucesso!" },
       { status: 200, headers }
     );
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Erro na confirmação de e-mail:", error);
     return NextResponse.json(
-      { message: "Erro ao confirmar e-mail" },
+      { message: (error as Error).message || "Erro ao confirmar e-mail" },
       { status: 500, headers }
     );
   }
@@ -148,6 +152,12 @@ export async function GET(request: NextRequest) {
 // OPTIONS handler for CORS preflight
 export async function OPTIONS() {
   return new NextResponse(null, {
-    headers: getCorsHeaders()
+    headers: {
+      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+        ? '*' 
+        : 'https://www.vaguinhas.com.br',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
   });
 }
