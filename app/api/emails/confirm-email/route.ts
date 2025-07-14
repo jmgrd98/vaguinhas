@@ -2,7 +2,6 @@ import { NextResponse, NextRequest } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import { LRUCache } from "lru-cache";
 
 // Define webhook payload type
 interface WebhookPayload {
@@ -43,7 +42,14 @@ const triggerMakeWebhook = async (data: WebhookPayload): Promise<void> => {
 };
 
 export async function GET(request: NextRequest) {
-  const headers = getCorsHeaders();
+  // CORS headers configuration
+  const headers = {
+    'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+      ? '*' 
+      : 'https://www.vaguinhas.com.br',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
+  };
 
   try {
     // Handle OPTIONS requests
@@ -51,44 +57,25 @@ export async function GET(request: NextRequest) {
       return new NextResponse(null, { headers });
     }
 
-    // IP-based rate limiting
+    // Rate limiting
     const ip = request.headers.get("cf-connecting-ip") || 
                request.headers.get("x-forwarded-for") || 
                request.headers.get("x-real-ip") || 
                "127.0.0.1";
     
-    const ipRateLimitResult = await ipRatelimit.limit(ip);
+    const { success } = await ratelimit.limit(ip);
     
-    if (!ipRateLimitResult.success) {
+    if (!success) {
       return NextResponse.json(
         { message: "Muitas solicitações. Tente novamente mais tarde." },
         { status: 429, headers }
       );
     }
 
-    // JWT Authentication
-    const token = request.headers.get('authorization')?.split(' ')[1];
-    if (token) {
-      // Token-based rate limiting (for automated systems)
-      if (!token || token !== process.env.JWT_SECRET) {
-        return NextResponse.json(
-          { error: "Unauthorized" },
-          { status: 401, headers }
-        );
-      }
-
-      if (isTokenRateLimited(token)) {
-        return NextResponse.json(
-          { error: "Rate limit exceeded. Try again in 30 minutes." },
-          { status: 429, headers }
-        );
-      }
-    }
-
-    // Validate confirmation token
+    // Validate token
     const { searchParams } = new URL(request.url);
-    const confirmationToken = searchParams.get('token');
-    
+    const token = searchParams.get('token');
+
     if (!token || token.length !== 64) {
       return NextResponse.json(
         { message: "Token inválido" },
@@ -99,7 +86,7 @@ export async function GET(request: NextRequest) {
     // Database operations
     const { db } = await connectToDatabase();
     const user = await db.collection("users").findOne({
-      confirmationToken: confirmationToken,
+      confirmationToken: token,
       confirmationExpires: { $gt: new Date() }
     });
 
@@ -165,6 +152,12 @@ export async function GET(request: NextRequest) {
 // OPTIONS handler for CORS preflight
 export async function OPTIONS() {
   return new NextResponse(null, {
-    headers: getCorsHeaders()
+    headers: {
+      'Access-Control-Allow-Origin': process.env.NODE_ENV === 'development' 
+        ? '*' 
+        : 'https://www.vaguinhas.com.br',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    }
   });
 }
