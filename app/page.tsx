@@ -256,9 +256,10 @@ export default function Home() {
           {[
             'frontend',
             'backend',
+            'fullstack',
             'mobile',
             // 'devops',
-            // 'dados',
+            'dados',
             'design'
           ].map(area => (
             <SelectItem key={area} value={area}>
