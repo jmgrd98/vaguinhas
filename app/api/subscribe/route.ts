@@ -118,10 +118,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       await db.collection("users").deleteOne({ _id: insertResult.insertedId });
       console.error("Email sending error:", error);
       
-      return NextResponse.json(
-        { message: "Falha ao enviar e-mail de confirmação" },
-        { status: 500, headers }
-      );
+      // return NextResponse.json(
+      //   { message: "Falha ao enviar e-mail de confirmação" },
+      //   { status: 500, headers }
+      // );
     }
 
     // Send admin notification (fire-and-forget)
