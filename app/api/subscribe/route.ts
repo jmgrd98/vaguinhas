@@ -119,7 +119,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       console.error("Email sending error:", error);
       
       return NextResponse.json(
-        { message: "Failed to send confirmation email" },
+        { message: "Falha ao enviar e-mail de confirmação" },
         { status: 500, headers }
       );
     }
