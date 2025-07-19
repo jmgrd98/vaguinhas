@@ -76,6 +76,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const { email: normalizedEmail, seniorityLevel, stacks } = validation.data;
     const stack = stacks && stacks[0];
 
+    const extractEmailType = (email: string): string | null => {
+      const parts = email.split('@');
+      if (parts.length < 2) return null;
+      
+      const domain = parts[1];
+      const domainParts = domain.split('.');
+      return domainParts.length > 1 ? domainParts[0] : null;
+    };
+
+    const emailType = extractEmailType(normalizedEmail);
+
     // Generate password
     const plainPassword = generatePassword();
     
@@ -89,7 +100,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (existing) {
       return NextResponse.json(
         // { message: "This email is already registered" },
-        { message: "Esse e-mail ja foi cadastrado!" },
+        { message: "Esse e-mail já foi cadastrado!" },
         { status: 409, headers }
       );
     }
@@ -101,6 +112,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     // Insert new user with hashed password
     const insertResult = await db.collection("users").insertOne({
       email: normalizedEmail,
+      emailType,
       seniorityLevel,
       stacks: [stack],
       createdAt: new Date(),
@@ -119,7 +131,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       console.error("Email sending error:", error);
       
       return NextResponse.json(
-        { message: "Failed to send confirmation email" },
+        { message: "Falha ao enviar e-mail de confirmação" },
         { status: 500, headers }
       );
     }

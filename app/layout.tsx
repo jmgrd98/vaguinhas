@@ -21,7 +21,7 @@ const caprasimo = Caprasimo({
 
 export const metadata: Metadata = {
   title: "vaguinhas",
-  description: "Receba vagas de tecnologia diariamente no seu e-mail.",
+  description: "Receba vagas personalizadas de tecnologia diariamente no seu e-mail.",
   icons: {
     icon: '/favicon.ico'
   }

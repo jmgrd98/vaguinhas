@@ -181,8 +181,9 @@ export default function SubscriberPage() {
                     'frontend',
                     'backend',
                     'mobile',
+                    'fullstack',
                     // 'devops',
-                    // 'dados',
+                    'dados',
                     'design'
                   ].map(area => (
                     <SelectItem key={area} value={area}>
