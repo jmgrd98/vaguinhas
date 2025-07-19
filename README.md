@@ -1,6 +1,6 @@
 # vaguinhas 🧡
 
-vaguinhas é uma jobsletter diária e personalizada de vagas em tecnologia.
+vaguinhas 🧡 é uma jobsletter diária e personalizada de vagas em tecnologia.
 
 Basta escolher sua stack e senioridade e todos os dias você receberá um e-mail com vagas personalizadas com as preferências informadas.
 
