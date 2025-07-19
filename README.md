@@ -1,4 +1,4 @@
-# vaguinhas
+# vaguinhas 🧡
 
 vaguinhas é uma jobsletter diária e personalizada de vagas em tecnologia.
 
