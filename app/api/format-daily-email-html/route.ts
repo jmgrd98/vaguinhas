@@ -14,26 +14,166 @@ function generateEmailTemplateTop(email: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vagas do Dia</title>
   <style>
-    /* ... existing styles ... */
+    /* Base styles */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      font-family: Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    
+    .container {
+      width: 600px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    
+    .content {
+      padding: 0 30px 20px;
+    }
+    
+    .footer-content {
+      margin-top: 3rem;
+      padding: 1.5rem;
+      border-top: 1px solid #eaeaea;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    
+    .qr-code {
+      max-width: 200px;
+      margin: 0 auto;
+      display: block;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    /* Job content styles */
+    .job-content h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .job-content h3 {
+      color: #555555;
+      font-size: 18px;
+      margin-top: 0;
+    }
+    
+    .job-content p {
+      color: #444444;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+    
+    .job-content a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    
+    .job-content a:hover {
+      text-decoration: underline;
+    }
+    
+    .job-content .salary {
+      font-weight: bold;
+      color: #222222;
+      margin: 1.5rem 0;
+    }
+    
+    .job-content .apply-button, .hired-button {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #1a73e8;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+    
+    .hired-button {
+      background-color: #4CAF50;
+      border-radius: 20px;
+    }
+    
+    .hired-button:hover {
+      background-color: #3d8b40;
+      text-decoration: none;
+    }
+    
+    .hired-button-container {
+      text-align: right;
+      padding: 20px 20px 0;
+    }
+    
+    .job-content .company-link {
+      display: inline-block;
+      margin: 8px 0;
+      color: #1a73e8;
+    }
+    
+    .apply-button, .company-link {
+      cursor: pointer;
+    }
+    
+    /* Media queries */
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+      }
+      
+      .content {
+        padding: 15px !important;
+      }
+      
+      .footer-content {
+        padding: 15px !important;
+      }
+      
+      .qr-code {
+        max-width: 180px !important;
+      }
+      
+      .hired-button-container {
+        text-align: center;
+        padding: 15px 15px 0;
+      }
+      
+      .hired-button {
+        display: block;
+        margin: 0 auto;
+      }
+    }
   </style>
 </head>
-<body style="margin: 0; padding: 0; background-color: #f9f9f9; font-family: Arial, sans-serif; -webkit-text-size-adjust: 100%;">
+<body>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9f9f9; padding: 20px;">
     <tr>
       <td align="center">
-        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
-
-          <div class="hired-button-container">
-            <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">Consegui uma vaga! 🎉</a>
-          </div>
-
+        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
+          <!-- Hired button row -->
+          <tr>
+            <td class="hired-button-container">
+              <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">Consegui uma vaga! 🎉</a>
+            </td>
+          </tr>
+          
+          <!-- Logo row -->
           <tr>
             <td align="center" style="padding: 30px 20px 20px;">
               <img src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/vaguinhas-logo.png" alt="Vaguinhas Logo" width="100" height="auto" style="display: block; margin: 0 auto 20px;" />
             </td>
           </tr>
+          
+          <!-- Content row -->
           <tr>
-            <td class="content" style="padding: 0 30px 20px;">
+            <td class="content">
 `;
 }
 
