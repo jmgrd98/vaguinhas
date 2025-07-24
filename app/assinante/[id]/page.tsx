@@ -117,7 +117,7 @@ export default function SubscriberPage() {
       </div>
 
 
-     
+
       <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 sm:p-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Painel de Assinante</h1>
         <p className="text-gray-600 dark:text-gray-300 mb-8">
@@ -167,7 +167,7 @@ export default function SubscriberPage() {
             <div>
               <label className="block text-sm font-medium mb-2">Área</label>
               <Select
-                value={formData.stacks[0] || ""}
+                value={formData.stacks?.[0] || ""}
                 onValueChange={(value) =>
                   setFormData({ ...formData, stacks: [value] })
                 }
