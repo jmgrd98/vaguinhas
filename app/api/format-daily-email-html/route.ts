@@ -5,9 +5,6 @@ import juice from 'juice';
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
 
-console.log('BASE URL', baseUrl)
-
-
 // Constantes para o template do email
 const EMAIL_TEMPLATE_TOP = `
 <!DOCTYPE html>
