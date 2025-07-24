@@ -1,7 +1,7 @@
 {
     "crons": [
         {
-            "path": "/api/emails/send-feedback-email",
+            "path": "/api/emails/send-feedback-email-to-all",
             "schedule": "0 8 * * 2"
         },
         {
