@@ -68,7 +68,8 @@ const EMAIL_TEMPLATE_TOP = `
       margin: 1rem 0;
     }
     .hired-button {
-      border-radius: 50%;
+      border-radius: 20px;
+      padding-right: 3px;
     }
     .hired-button-container {
         position: static;
