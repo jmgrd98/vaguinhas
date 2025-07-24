@@ -102,7 +102,7 @@ function ConseguiUmaVagaContent() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/hired", {
+      const response = await fetch("/api/got-hired", {
         method: "POST",
         headers: { 
           "Content-Type": "application/json",
