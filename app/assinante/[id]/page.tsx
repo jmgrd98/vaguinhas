@@ -18,7 +18,7 @@ interface UserData {
   _id: string;
   email: string;
   seniorityLevel: string;
-  stacks: string[];
+  stacks?: string[];
   confirmed: boolean;
   createdAt: string;
 }
@@ -44,7 +44,7 @@ export default function SubscriberPage() {
         setUserData(data);
         setFormData({
           seniorityLevel: data.seniorityLevel,
-          stacks: data.stacks,
+          stacks: data.stacks || [],
         });
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
@@ -117,7 +117,7 @@ export default function SubscriberPage() {
       </div>
 
 
-     
+
       <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 sm:p-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Painel de Assinante</h1>
         <p className="text-gray-600 dark:text-gray-300 mb-8">
