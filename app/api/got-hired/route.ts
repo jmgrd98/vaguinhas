@@ -95,9 +95,6 @@ const updateResult = await db.collection("users").updateOne(
     messages: [hireMessage],
       lastHiredAt: new Date(),
     },
-    $setOnInsert: {
-      messages: [hireMessage],
-    }
   }
 );
 
