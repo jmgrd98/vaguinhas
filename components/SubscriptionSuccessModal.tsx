@@ -52,12 +52,14 @@ const SubscriptionSuccessModal = ({
                     : "Reenviar confirmação"}
                 </button>
                 
-                <button
-                  onClick={onClose}
-                  className="py-3 px-4 rounded-lg bg-white text-black font-bold hover:bg-gray-200 transition-colors"
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href="https://github.com/jmgrd98/vaguinhas"
+                  className="py-3 px-4 rounded-lg bg-white text-black font-bold hover:bg-gray-200 transition-colors cursor-pointer"
                 >
-                  Fechar
-                </button>
+                  Deixe uma estrela em nosso repo no Github ⭐
+                </a>
               </div>
             </div>
           </motion.div>
