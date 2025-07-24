@@ -67,10 +67,12 @@ const EMAIL_TEMPLATE_TOP = `
       font-weight: bold;
       margin: 1rem 0;
     }
+    .hired-button {
+      border-radius: 50%;
+    }
     .hired-button-container {
         position: static;
-        text-align: center;
-        margin-bottom: 20px;
+        text-align: right;
     }
     .job-content .company-link {
       display: inline-block;
