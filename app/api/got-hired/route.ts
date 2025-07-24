@@ -92,10 +92,11 @@ const updateResult = await db.collection("users").updateOne(
   { email: normalizedEmail },
   { 
     $set: {
+    messages: [hireMessage],
       lastHiredAt: new Date(),
     },
     $setOnInsert: {
-      lmessages: [hireMessage],
+      messages: [hireMessage],
     }
   }
 );
