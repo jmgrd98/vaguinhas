@@ -14,7 +14,7 @@ const rateLimitCache =
     : null;
 
 /** 
- * Returns true if this token has hit its 5‑call limit (30 min window).
+ * Returns true if this token has hit its 5‑call limit (30 min window).
  */
 function isRateLimited(token: string, limit = 5) {
   if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
@@ -28,7 +28,7 @@ function isRateLimited(token: string, limit = 5) {
 
 /**
  * Check bearer token against:
- *  - VERCEL’s CRON_SECRET (cron jobs)
+ *  - VERCEL's CRON_SECRET (cron jobs)
  *  - Your JWT_SECRET         (manual or client calls)
  */
 function isAuthorized(req: Request) {
@@ -39,6 +39,18 @@ function isAuthorized(req: Request) {
     (CRON_SECRET && token === CRON_SECRET) ||
     (JWT_SECRET && token === JWT_SECRET)
   );
+}
+
+/**
+ * Fisher-Yates shuffle algorithm to randomize array in-place
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]; // Create a copy to avoid mutating original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
 }
 
 export async function GET(req: Request) {
@@ -81,14 +93,19 @@ export async function GET(req: Request) {
       );
     }
 
-    // 4) Send emails (10 at a time, 1.5 s between batches)
-    console.log(`Starting batch email sending to ${emails.length} recipients`);
-    await sendBatchEmails(emails, sendFeedbackEmail, 10, 1500);
+    // 4) Randomize the email list to avoid same users being affected on timeout
+    const randomizedEmails = shuffleArray(emails);
+    console.log(`Randomized ${randomizedEmails.length} email recipients`);
+    console.log('Emails:', randomizedEmails);
+
+    // 5) Send emails (10 at a time, 1.5 s between batches)
+    console.log(`Starting batch email sending to ${randomizedEmails.length} recipients`);
+    await sendBatchEmails(randomizedEmails, sendFeedbackEmail, 10, 1500);
 
     return NextResponse.json(
       {
-        message: `Emails processed for ${emails.length} recipients`,
-        recipients: emails.length,
+        message: `Emails processed for ${randomizedEmails.length} recipients`,
+        recipients: randomizedEmails.length,
       },
       { status: 200 }
     );

@@ -24,6 +24,18 @@ function isRateLimited(token: string, limit = 5) {
   return false;
 }
 
+/**
+ * Fisher-Yates shuffle algorithm to randomize array in-place
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]; // Create a copy to avoid mutating original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export async function GET(req: Request) {
   // Authentication
   const token = req.headers.get('authorization')?.split(' ')[1];
@@ -67,15 +79,19 @@ export async function GET(req: Request) {
          { status: 400 }
        );
      }
+
+     // Randomize the email list to avoid same users being affected on timeout
+     const randomizedEmails = shuffleArray(emails);
+     console.log(`Randomized ${randomizedEmails.length} email recipients`);
  
      // Process emails in background
-     console.log(`Starting email sending to ${emails.length} recipients`);
-     await sendBatchEmails(emails, sendProblemsEmail, 10);
+     console.log(`Starting email sending to ${randomizedEmails.length} recipients`);
+     await sendBatchEmails(randomizedEmails, sendProblemsEmail, 10);
  
      return NextResponse.json(
        { 
-         message: `Emails sent to ${emails.length} recipients`,
-         recipients: emails.length
+         message: `Emails sent to ${randomizedEmails.length} recipients`,
+         recipients: randomizedEmails.length
        },
        { status: 200 }
      );
