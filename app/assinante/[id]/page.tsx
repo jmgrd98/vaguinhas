@@ -18,7 +18,7 @@ interface UserData {
   _id: string;
   email: string;
   seniorityLevel: string;
-  stacks: string[];
+  stacks?: string[];
   confirmed: boolean;
   createdAt: string;
 }
@@ -44,7 +44,7 @@ export default function SubscriberPage() {
         setUserData(data);
         setFormData({
           seniorityLevel: data.seniorityLevel,
-          stacks: data.stacks,
+          stacks: data.stacks || [],
         });
       } catch (error) {
         console.error("Erro ao buscar dados:", error);
@@ -167,7 +167,7 @@ export default function SubscriberPage() {
             <div>
               <label className="block text-sm font-medium mb-2">Área</label>
               <Select
-                value={formData.stacks?.[0] || ""}
+                value={formData.stacks[0] || ""}
                 onValueChange={(value) =>
                   setFormData({ ...formData, stacks: [value] })
                 }
