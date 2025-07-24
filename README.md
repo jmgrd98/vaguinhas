@@ -9,3 +9,9 @@ Basta escolher sua stack e senioridade e todos os dias você receberá um e-mail
 ## Deixe sua estrelinha em nosso repo! ⭐ Sua ajuda é muito importante para o crescimento do projeto. 😊
 
 Tem alguma dúvida? Mande uma mensagem para nós em nosso LinkedIn: [https://www.linkedin.com/company/vaguinhas](https://www.linkedin.com/company/vaguinhas)
+
+## Contribuidores ✨
+
+<a href="https://github.com/jmgrd98/vaguinhas/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=jmgrd98/vaguinhas&anon=0&columns=20&max=100" />
+</a>
