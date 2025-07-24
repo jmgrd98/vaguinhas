@@ -158,11 +158,13 @@ function generateEmailTemplateTop(email: string) {
       <td align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
           <!-- Hired button row -->
-          // <tr>
-          //   <td class="hired-button-container">
-          //     <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">Consegui uma vaga! 🎉</a>
-          //   </td>
-          // </tr>
+          <!--
+          <tr>
+            <td class="hired-button-container">
+              <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">Consegui uma vaga! 🎉</a>
+            </td>
+          </tr>
+          -->
           
           <!-- Logo row -->
           <tr>
