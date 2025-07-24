@@ -14,31 +14,6 @@ const EMAIL_TEMPLATE_TOP = `
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vagas do Dia</title>
   <style>
-    /* Add this new style for the success button */
-    .success-button-container {
-      position: absolute;
-      top: 20px;
-      right: 30px;
-      z-index: 10;
-    }
-    
-    .success-button {
-      display: inline-block;
-      padding: 8px 16px;
-      background-color: #4CAF50;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-      font-size: 14px;
-      transition: background-color 0.3s;
-    }
-    
-    .success-button:hover {
-      background-color: #3d8b40;
-      text-decoration: none;
-    }
-    
     @media only screen and (max-width: 600px) {
       .container {
         width: 100% !important;
@@ -52,31 +27,71 @@ const EMAIL_TEMPLATE_TOP = `
       .qr-code {
         max-width: 180px !important;
       }
-      /* Mobile styles for button */
-      .success-button-container {
+    }
+    
+    /* Base styles for job content */
+    .job-content h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    .job-content h3 {
+      color: #555555;
+      font-size: 18px;
+      margin-top: 0;
+    }
+    .job-content p {
+      color: #444444;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+    .job-content a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    .job-content a:hover {
+      text-decoration: underline;
+    }
+    .job-content .salary {
+      font-weight: bold;
+      color: #222222;
+      margin: 1.5rem 0;
+    }
+    .job-content .apply-button, .hired-button {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #1a73e8;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+    .hired-button-container {
         position: static;
         text-align: center;
         margin-bottom: 20px;
-      }
-      .success-button {
-        display: block;
-        margin: 0 auto;
-      }
     }
-    
-    /* ... existing styles ... */
+    .job-content .company-link {
+      display: inline-block;
+      margin: 8px 0;
+      color: #1a73e8;
+    }
+    .apply-button, .company-link {
+      cursor: pointer;
+    }
   </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f9f9f9; font-family: Arial, sans-serif; -webkit-text-size-adjust: 100%;">
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9f9f9; padding: 20px;">
     <tr>
       <td align="center">
-        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05); position: relative;">
-          <!-- Success Button Added Here -->
-          <div class="success-button-container">
-            <a href="${baseUrl}/contact" class="success-button">Consegui uma vaga!</a>
+        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 0 10px rgba(0,0,0,0.05);">
+
+          <div class="hired-button-container">
+            <a href="${baseUrl}/contact" class="hired-button">Consegui uma vaga! 🎉</a>
           </div>
-          
+
           <tr>
             <td align="center" style="padding: 30px 20px 20px;">
               <img src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/vaguinhas-logo.png" alt="Vaguinhas Logo" width="100" height="auto" style="display: block; margin: 0 auto 20px;" />
