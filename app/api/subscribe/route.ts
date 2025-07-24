@@ -142,7 +142,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     return NextResponse.json(
-      { message: "Email saved, password generated, and confirmation sent!" },
+      { message: "E-mail salvo, senha gerada e confirmação enviada!" , id: insertResult.insertedId.toString()},
       { status: 201, headers }
     );
   } catch (error) {
