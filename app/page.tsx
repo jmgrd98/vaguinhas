@@ -9,7 +9,7 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp, FaGithub, FaGoogle } from "react-icons/fa";
+import { FaWhatsapp, FaGithub } from "react-icons/fa";
 import {
   Tooltip,
   TooltipContent,
@@ -28,7 +28,7 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-import { signIn, useSession } from "next-auth/react";
+// import { signIn, useSession } from "next-auth/react";
 
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
@@ -96,14 +96,14 @@ export default function Home() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [showSelectionError, setShowSelectionError] = useState(false);
+  // const [showSelectionError, setShowSelectionError] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: session } = useSession();
+  // const { data: session } = useSession();
 
   // if (status === "loading") return <p>Loading…</p>;
 
@@ -244,17 +244,17 @@ export default function Home() {
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
 
-       {!session && (
+       {/* {!session && (
         <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
           <FaGoogle className="mr-2" /> Sign in with Google
         </Button>
-      )}
+      )} */}
 
-      {showSelectionError && (
+      {/* {showSelectionError && (
         <p className="text-red-500 text-sm w-full text-center">
           Por favor, selecione sua área e nível profissional primeiro.
         </p>
-      )}
+      )} */}
 
       <Input
         ref={inputRef}
@@ -313,24 +313,24 @@ export default function Home() {
     </div>
   );
 
-   const handleGoogleSignIn = useCallback(() => {
-      if (!stack || !seniorityLevel) {
-        setShowSelectionError(true);
-        return;
-      }
-      setShowSelectionError(false);
+  //  const handleGoogleSignIn = useCallback(() => {
+  //     if (!stack || !seniorityLevel) {
+  //       setShowSelectionError(true);
+  //       return;
+  //     }
+  //     setShowSelectionError(false);
 
-      // build an *absolute* callback URL INCLUDING your two params
-      const cb = `${window.location.origin}/auth/callback`
-              + `?stack=${encodeURIComponent(stack)}`
-              + `&seniorityLevel=${encodeURIComponent(seniorityLevel)}`;
+  //     // build an *absolute* callback URL INCLUDING your two params
+  //     const cb = `${window.location.origin}/auth/callback`
+  //             + `?stack=${encodeURIComponent(stack)}`
+  //             + `&seniorityLevel=${encodeURIComponent(seniorityLevel)}`;
 
-      // tell NextAuth exactly where to redirect after OAuth
-      signIn("google", { callbackUrl: cb, redirect: false })
-        .then((response) => {
-          if (response?.url) window.location.href = response.url;
-        });
-    }, [stack, seniorityLevel]);
+  //     // tell NextAuth exactly where to redirect after OAuth
+  //     signIn("google", { callbackUrl: cb, redirect: false })
+  //       .then((response) => {
+  //         if (response?.url) window.location.href = response.url;
+  //       });
+  //   }, [stack, seniorityLevel]);
 
 
 
