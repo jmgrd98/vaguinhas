@@ -2,22 +2,28 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { 
+  FaEye,
+  FaEyeSlash,
+  FaGoogle,
+  FaLinkedin 
+} from "react-icons/fa";
+import { signIn } from "next-auth/react";
 
 interface SubscriberAreaLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   resendConfirmation: (email: string) => Promise<void>;
+  onLoginSuccess?: (userId: string) => void;
 }
 
 export default function SubscriberAreaLoginModal({ 
   isOpen, 
   onClose,
-  resendConfirmation
+  resendConfirmation,
+  onLoginSuccess
 }: SubscriberAreaLoginModalProps) {
-  const router = useRouter();
   const [accessEmail, setAccessEmail] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +65,11 @@ export default function SubscriberAreaLoginModal({
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('sessionToken', data.token);
-        router.push(`/assinante/${data.userId}`);
+        
+        if (onLoginSuccess) {
+          onLoginSuccess(data.userId);
+        }
+        
         onClose();
       } 
       else if (res.status === 401) {
@@ -86,7 +96,7 @@ export default function SubscriberAreaLoginModal({
     } finally {
       setIsLoading(false);
     }
-  }, [accessEmail, accessPassword, router, resendConfirmation, onClose, validateEmail]);
+  }, [accessEmail, accessPassword, resendConfirmation, onClose, validateEmail, onLoginSuccess]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
@@ -117,6 +127,42 @@ export default function SubscriberAreaLoginModal({
       setIsLoading(false);
     }
   }, [resetEmail, validateEmail]);
+
+  const handleGoogleSignIn = useCallback(async () => {
+    // For existing users, just redirect to OAuth flow
+    // The callback page will handle checking if user exists
+    try {
+      await signIn("google", { 
+        callbackUrl: `/auth/callback?fromLogin=true`,
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Failed to sign in with Google');
+    }
+  }, []);
+
+  const handleLinkedinSignIn = useCallback(async () => {
+    // For existing users, just redirect to OAuth flow
+    // The callback page will handle checking if user exists
+    try {
+      await signIn("linkedin", { 
+        callbackUrl: `/auth/callback?fromLogin=true`,
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('LinkedIn sign-in error:', error);
+      toast.error('Failed to sign in with LinkedIn');
+    }
+  }, []);
+
+  // Reset form when modal closes
+  useCallback(() => {
+    if (!isOpen) {
+      setShowResetForm(false);
+      setResetEmail("");
+    }
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -194,12 +240,48 @@ export default function SubscriberAreaLoginModal({
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  
-                  
+                </div>
+
+                {/* OAuth Sign-in Options */}
+                <div className="mt-6 space-y-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">
+                        Ou continue com
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <Button
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={handleGoogleSignIn}
+                      disabled={isLoading}
+                    >
+                      <FaGoogle className="mr-2 text-[#4285F4]" /> Google
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={handleLinkedinSignIn}
+                      disabled={isLoading}
+                    >
+                      <FaLinkedin className="mr-2 text-[#0A66C2]" /> LinkedIn
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Faça login com sua conta Google ou LinkedIn existente
+                  </p>
                 </div>
                 
-                <div className="flex justify-center  mt-6">
-                   <Button 
+                <div className="flex justify-center mt-6">
+                  <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => setShowResetForm(true)}
@@ -227,8 +309,6 @@ export default function SubscriberAreaLoginModal({
                     </Button>
                   </div>
                 </div>
-
-               
               </>
             )}
           </motion.div>
