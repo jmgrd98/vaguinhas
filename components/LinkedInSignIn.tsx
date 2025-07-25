@@ -41,7 +41,7 @@ export default function LinkedInSignIn({ stack, seniorityLevel }: LinkedInSignIn
 
   return (
     <Button 
-      className="cursor-pointer" 
+      className="cursor-pointer w-1/3 bg-transparent text-[#8B8B8B] border border-[#8B8B8B] hover:text-white hover:bg-[#8B8B8B] transition-colors" 
       onClick={handleLinkedInSignIn}
       disabled={!stack || !seniorityLevel}
     >

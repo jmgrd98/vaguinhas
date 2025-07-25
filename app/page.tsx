@@ -309,6 +309,9 @@ export default function Home() {
     router.push(`/assinante/${userId}`);
   }, [router]);
 
+  // Check if OAuth buttons should be enabled
+  const isOAuthEnabled = !!stack && !!seniorityLevel;
+
   // Form rendering
   const renderForm = () => (
     <div className="flex flex-col gap-3 items-center w-full max-w-[1200px] mt-8">
@@ -418,13 +421,25 @@ export default function Home() {
 
         {renderForm()}
         
-        <div className='flex flex-col gap-5 items-center w-full max-w-[1200px] mt-8'>
-        <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
-          <FaGoogle className="mr-2" /> Sign in with Google
-        </Button>
-        
-        <LinkedInSignIn stack={stack} seniorityLevel={seniorityLevel} />
-      </div>
+        <div className='flex flex-col gap-5 items-center w-full mt-8'>
+          <Button 
+            disabled={!isOAuthEnabled} 
+            className={`w-1/2 ${!isOAuthEnabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
+            onClick={() => handleGoogleSignIn()}
+          >
+            <FaGoogle 
+              className={`mr-2 ${isOAuthEnabled ? 'text-[#4285F4]' : 'text-gray-400'}`} 
+            /> 
+            Sign in with Google
+          </Button>
+          
+          <LinkedInSignIn 
+            stack={stack} 
+            seniorityLevel={seniorityLevel} 
+            // disabled={!isOAuthEnabled}
+            // iconClassName={isOAuthEnabled ? 'text-[#0A66C2]' : 'text-gray-400'}
+          />
+        </div>
 
         <Button 
           variant="ghost" 

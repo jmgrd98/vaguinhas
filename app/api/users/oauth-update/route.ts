@@ -1,4 +1,4 @@
-// app/api/users/oauth-update/route.ts
+// app/api/users/oauth-update/route.ts  
 
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
@@ -11,6 +11,13 @@ const oauthUpdateSchema = z.object({
   seniorityLevel: z.string().min(1),
   provider: z.string().optional(),
   providerId: z.string().optional(),
+  givenName: z.string().optional(),
+  familyName: z.string().optional(),
+  location: z.string().optional(),
+  headline: z.string().optional(),
+  industry: z.string().optional(),
+  profileUrl: z.string().optional(),
+  emailType: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,7 +42,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, stack, seniorityLevel, provider, providerId } = validation.data;
+    const { 
+      email, 
+      stack, 
+      seniorityLevel, 
+      provider, 
+      providerId,
+      givenName,
+      familyName,
+      location,
+      headline,
+      industry,
+      profileUrl,
+      emailType,
+    } = validation.data;
 
     // Check if user exists
     const user = await db.collection("users").findOne({ email });
@@ -47,6 +67,15 @@ export async function POST(req: NextRequest) {
         stacks: [stack],
         updatedAt: new Date(),
       };
+
+      if (givenName) updateData.givenName = givenName;
+      if (familyName) updateData.familyName = familyName;
+      if (location) updateData.location = location;
+      if (emailType) updateData.emailType = emailType;
+      if (location) updateData.location = location;
+      if (headline) updateData.headline = headline;
+      if (industry) updateData.industry = industry;
+      if (profileUrl) updateData.profileUrl = profileUrl;
 
       if (provider && providerId) {
         updateData.oauthProvider = provider;
@@ -61,9 +90,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         success: true,
         userId: user._id.toString(),
-        email: user.email,
-        isNewUser: false,
-      }, { status: 200 });
+        isNewUser: !user.stack || !user.seniorityLevel, // Was missing required fields
+        message: 'User profile updated successfully'
+      });
     } else {
       // Create new user for OAuth sign-up
       const newUser = {

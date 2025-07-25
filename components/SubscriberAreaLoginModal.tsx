@@ -7,16 +7,9 @@ import {
   FaEye,
   FaEyeSlash,
   FaGoogle,
-  // FaLinkedin 
+  FaLinkedin 
 } from "react-icons/fa";
 import { signIn } from "next-auth/react";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
 
 interface SubscriberAreaLoginModalProps {
   isOpen: boolean;
@@ -37,11 +30,6 @@ export default function SubscriberAreaLoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
-  
-  // Add state for OAuth login requirements
-  const [oauthStack, setOauthStack] = useState("");
-  const [oauthSeniority, setOauthSeniority] = useState("");
-  const [showOauthError, setShowOauthError] = useState(false);
 
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -140,37 +128,39 @@ export default function SubscriberAreaLoginModal({
     }
   }, [resetEmail, validateEmail]);
 
-  const handleGoogleSignIn = useCallback(() => {
-    // Check if stack and seniority are selected
-    if (!oauthStack || !oauthSeniority) {
-      setShowOauthError(true);
-      return;
+  const handleGoogleSignIn = useCallback(async () => {
+    // For existing users, just redirect to OAuth flow
+    // The callback page will handle checking if user exists
+    try {
+      await signIn("google", { 
+        callbackUrl: `/auth/callback?fromLogin=true`,
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Failed to sign in with Google');
     }
-    setShowOauthError(false);
+  }, []);
 
-    // Store params in sessionStorage for OAuth flow
-    sessionStorage.setItem('oauth_params', JSON.stringify({ 
-      stack: oauthStack, 
-      seniorityLevel: oauthSeniority 
-    }));
+  const handleLinkedinSignIn = useCallback(async () => {
+    // For existing users, just redirect to OAuth flow
+    // The callback page will handle checking if user exists
+    try {
+      await signIn("linkedin", { 
+        callbackUrl: `/auth/callback?fromLogin=true`,
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('LinkedIn sign-in error:', error);
+      toast.error('Failed to sign in with LinkedIn');
+    }
+  }, []);
 
-    // Build callback URL with params
-    const cb = `${window.location.origin}/auth/callback`
-            + `?stack=${encodeURIComponent(oauthStack)}`
-            + `&seniorityLevel=${encodeURIComponent(oauthSeniority)}`;
-
-    signIn("google", { 
-      callbackUrl: cb,
-      redirect: true 
-    });
-  }, [oauthStack, oauthSeniority]);
-
-  // Reset OAuth fields when modal closes
+  // Reset form when modal closes
   useCallback(() => {
     if (!isOpen) {
-      setOauthStack("");
-      setOauthSeniority("");
-      setShowOauthError(false);
+      setShowResetForm(false);
+      setResetEmail("");
     }
   }, [isOpen]);
 
@@ -265,60 +255,33 @@ export default function SubscriberAreaLoginModal({
                     </div>
                   </div>
 
-                  {/* Stack and Seniority selection for OAuth */}
                   <div className="space-y-3">
-                    <Select value={oauthStack} onValueChange={setOauthStack}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione sua área" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[
-                          'frontend',
-                          'backend',
-                          'fullstack',
-                          'mobile',
-                          'dados',
-                          'design'
-                        ].map(area => (
-                          <SelectItem key={area} value={area}>
-                            {area === 'design' ? 'Designer UI/UX' : area.charAt(0).toUpperCase() + area.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    <Select value={oauthSeniority} onValueChange={setOauthSeniority}>
-                      <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Selecione seu nível profissional" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {["junior", "pleno", "senior"].map(level => (
-                          <SelectItem key={level} value={level}>
-                            {level.charAt(0).toUpperCase() + level.slice(1)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-
-                    {showOauthError && (
-                      <p className="text-red-500 text-sm text-center">
-                        Por favor, selecione sua área e nível profissional antes de continuar com Google.
-                      </p>
-                    )}
-
                     <Button
                       variant="outline"
                       className="w-full cursor-pointer"
                       onClick={handleGoogleSignIn}
                       disabled={isLoading}
                     >
-                      <FaGoogle className="mr-2" /> Google
+                      <FaGoogle className="mr-2 text-[#4285F4]" /> Google
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={handleLinkedinSignIn}
+                      disabled={isLoading}
+                    >
+                      <FaLinkedin className="mr-2 text-[#0A66C2]" /> LinkedIn
                     </Button>
                   </div>
+
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    Faça login com sua conta Google ou LinkedIn existente
+                  </p>
                 </div>
                 
                 <div className="flex justify-center mt-6">
-                   <Button 
+                  <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => setShowResetForm(true)}

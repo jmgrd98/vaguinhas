@@ -25,6 +25,13 @@ export interface UpdateData {
   updatedAt: Date;
   oauthProvider?: string;
   oauthProviderId?: string;
+  givenName?: string;
+  familyName?: string;
+  location?: string;
+  headline?: string;
+  industry?: string;
+  profileUrl?: string;
+  emailType?: string;
 }
 
 
