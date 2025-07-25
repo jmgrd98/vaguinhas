@@ -1,0 +1,20 @@
+name: Send Support Us Email to All Subscribers
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 18 * * 2,5"
+
+jobs:
+  trigger-support-us-email:
+    runs-on: ubuntu-latest
+    env:
+      API_ENDPOINT: https://vaguinhas.com.br/api/emails/send-support-us-email-to-all
+      API_TOKEN: ${{ secrets.JWT_SECRET }}
+
+    steps:
+      - name: Send support us email to all subscribers
+        run: |
+          curl -X GET "$API_ENDPOINT" \
+          -H "Content-Type: application/json" \
+          -H "Authorization: Bearer ${{ secrets.JWT_SECRET }}"
