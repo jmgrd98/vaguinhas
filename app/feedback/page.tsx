@@ -119,6 +119,14 @@ function FeedbackContent() {
     return "text-green-600";
   };
 
+  const getRatingEmoji = (value: number) => {
+    if (value <= 2) return "😢";
+    if (value <= 4) return "😕";
+    if (value <= 6) return "😐";
+    if (value <= 8) return "😊";
+    return "😍";
+  };
+
   return (
     <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       <div className="absolute top-4 right-4 z-50">
@@ -146,7 +154,7 @@ function FeedbackContent() {
 
         <div className="flex flex-col gap-4 items-center w-full max-w-[600px] mt-8">
           <p className="mb-4 text-lg sm:text-xl font-bold text-center">
-            Como foi sua experiência com o vaguinhas?
+            Como está sendo sua experiência com o vaguinhas?
           </p>
 
           <div className="w-full">
@@ -170,6 +178,11 @@ function FeedbackContent() {
               <Label className="text-muted-foreground px-2 py-1.5 text-xs">
                 Avaliação
               </Label>
+              <div className="flex items-center justify-center mb-4">
+                <span className="text-6xl transition-all duration-200 transform hover:scale-110">
+                  {getRatingEmoji(rating[0])}
+                </span>
+              </div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-muted-foreground">1</span>
                 <span className={`text-lg font-semibold ${getRatingColor(rating[0])}`}>
@@ -185,6 +198,14 @@ function FeedbackContent() {
                 step={1}
                 className="w-full"
               />
+              {/* Optional: Show emoji scale below slider */}
+              <div className="flex justify-between mt-3 px-1">
+                <span className="text-sm opacity-60">😢</span>
+                <span className="text-sm opacity-60">😕</span>
+                <span className="text-sm opacity-60">😐</span>
+                <span className="text-sm opacity-60">😊</span>
+                <span className="text-sm opacity-60">😍</span>
+              </div>
             </div>
           </div>
 
