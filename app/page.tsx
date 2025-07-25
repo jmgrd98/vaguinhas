@@ -28,8 +28,12 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-import { signIn, useSession } from "next-auth/react";
-
+import { 
+  signIn,
+  // useSession 
+} from "next-auth/react";
+import LinkedInSignIn from "@/components/LinkedInSignIn";
+import { useRouter } from "next/navigation";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -84,7 +88,7 @@ const useCooldown = (initialCooldown = 0) => {
 };
 
 export default function Home() {
-
+  const router = useRouter();
   const windowSize = useWindowSize();
   const { cooldown, setCooldown, canResend, setCanResend } = useCooldown(0);
   
@@ -103,9 +107,7 @@ export default function Home() {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { data: session } = useSession();
-
-  // if (status === "loading") return <p>Loading…</p>;
+  // const { data: session, status: sessionStatus } = useSession();
 
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
@@ -127,6 +129,16 @@ export default function Home() {
       return () => clearTimeout(timer);
     }
   }, [showConfetti]);
+
+  // Check for userId in URL params on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    
+    if (userId) {
+      router.push(`/assinante/${userId}`);
+    }
+  }, [router]);
 
   // Form submission
   const saveEmail = useCallback(async () => {
@@ -151,6 +163,8 @@ export default function Home() {
         throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
       }
 
+      const responseData = await res.json();
+
       if (res.status === 201) {
         localStorage.setItem("confirmationEmail", email);
         localStorage.setItem("lastResend", Date.now().toString());
@@ -159,7 +173,14 @@ export default function Home() {
         setCanResend(false);
         setStatus("success");
         setShowConfetti(true);
-        setShowSuccessModal(true);
+        
+        // If we get a userId in the response, redirect to subscriber area
+        if (responseData.userId) {
+          router.push(`/assinante/${responseData.userId}`);
+        } else {
+          setShowSuccessModal(true);
+        }
+        
         setEmail("");
         setSeniorityLevel("");
         setStack("");
@@ -189,6 +210,13 @@ export default function Home() {
         toast.warning("Esse e-mail já está cadastrado!", {
           description: "Obrigado, seu e-mail já foi validado.",
         });
+        
+        // If user already exists, redirect to login or subscriber area
+        if (responseData.userId) {
+          router.push(`/assinante/${responseData.userId}`);
+        } else {
+          setIsModalOpen(true); // Open login modal
+        }
       }
       else {
         throw new Error("Unexpected response status");
@@ -197,7 +225,7 @@ export default function Home() {
       setStatus("error");
       toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
     }
-  }, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend]);
+  }, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend, router]);
 
   // Resend confirmation
   const resendConfirmation = useCallback(async (emailToResend: string) => {
@@ -237,6 +265,50 @@ export default function Home() {
     }
   }, [setCooldown, setCanResend]);
 
+  // Update the handleGoogleSignIn function in your Home component
+
+  const handleGoogleSignIn = useCallback(async () => {
+    if (!stack || !seniorityLevel) {
+      setShowSelectionError(true);
+      return;
+    }
+    setShowSelectionError(false);
+
+    // Store params in sessionStorage for OAuth flow
+    sessionStorage.setItem('oauth_params', JSON.stringify({ 
+      stack, 
+      seniorityLevel,
+      timestamp: Date.now() // Add timestamp for validation
+    }));
+
+    // Build callback URL with params
+    const params = new URLSearchParams({
+      stack: stack,
+      seniorityLevel: seniorityLevel
+    });
+
+    // Use signIn with explicit callback URL
+    try {
+      const result = await signIn("google", { 
+        callbackUrl: `/auth/callback?${params.toString()}`,
+        redirect: true 
+      });
+      
+      // This won't execute if redirect: true, but kept for completeness
+      if (result?.error) {
+        toast.error('Failed to sign in with Google');
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      toast.error('Failed to sign in with Google');
+    }
+  }, [stack, seniorityLevel]);
+
+  // Handle successful login from modal
+  const handleLoginSuccess = useCallback((userId: string) => {
+    router.push(`/assinante/${userId}`);
+  }, [router]);
+
   // Form rendering
   const renderForm = () => (
     <div className="flex flex-col gap-3 items-center w-full max-w-[1200px] mt-8">
@@ -244,11 +316,7 @@ export default function Home() {
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
 
-       {!session && (
-        <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
-          <FaGoogle className="mr-2" /> Sign in with Google
-        </Button>
-      )}
+      {/* Always show sign-in buttons */}
 
       {showSelectionError && (
         <p className="text-red-500 text-sm w-full text-center">
@@ -313,27 +381,6 @@ export default function Home() {
     </div>
   );
 
-   const handleGoogleSignIn = useCallback(() => {
-      if (!stack || !seniorityLevel) {
-        setShowSelectionError(true);
-        return;
-      }
-      setShowSelectionError(false);
-
-      // build an *absolute* callback URL INCLUDING your two params
-      const cb = `${window.location.origin}/auth/callback`
-              + `?stack=${encodeURIComponent(stack)}`
-              + `&seniorityLevel=${encodeURIComponent(seniorityLevel)}`;
-
-      // tell NextAuth exactly where to redirect after OAuth
-      signIn("google", { callbackUrl: cb, redirect: false })
-        .then((response) => {
-          if (response?.url) window.location.href = response.url;
-        });
-    }, [stack, seniorityLevel]);
-
-
-
   return (
     <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
       {showConfetti && (
@@ -371,6 +418,14 @@ export default function Home() {
 
         {renderForm()}
         
+        <div className='flex flex-col gap-5 items-center w-full max-w-[1200px] mt-8'>
+        <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
+          <FaGoogle className="mr-2" /> Sign in with Google
+        </Button>
+        
+        <LinkedInSignIn stack={stack} seniorityLevel={seniorityLevel} />
+      </div>
+
         <Button 
           variant="ghost" 
           size="lg"
@@ -386,7 +441,6 @@ export default function Home() {
             <AlertDescription>Falha ao salvar. Tente novamente.</AlertDescription>
           </Alert>
         )}
-        {/* {status === "success" && renderSuccessAlert()} */}
       </main>
 
       <footer className="py-4 sm:py-6 w-full text-center border-t border-gray-200 dark:border-gray-700">
@@ -430,11 +484,12 @@ export default function Home() {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Subscriber Area Modal */}
+      {/* Subscriber Area Modal - Now passes onLoginSuccess callback */}
       <SubscriberAreaLoginModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         resendConfirmation={resendConfirmation}
+        onLoginSuccess={handleLoginSuccess}
       />
     </div>
   );

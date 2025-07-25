@@ -2,28 +2,46 @@ import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { 
+  FaEye,
+  FaEyeSlash,
+  FaGoogle,
+  // FaLinkedin 
+} from "react-icons/fa";
+import { signIn } from "next-auth/react";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
 
 interface SubscriberAreaLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
   resendConfirmation: (email: string) => Promise<void>;
+  onLoginSuccess?: (userId: string) => void;
 }
 
 export default function SubscriberAreaLoginModal({ 
   isOpen, 
   onClose,
-  resendConfirmation
+  resendConfirmation,
+  onLoginSuccess
 }: SubscriberAreaLoginModalProps) {
-  const router = useRouter();
   const [accessEmail, setAccessEmail] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
+  
+  // Add state for OAuth login requirements
+  const [oauthStack, setOauthStack] = useState("");
+  const [oauthSeniority, setOauthSeniority] = useState("");
+  const [showOauthError, setShowOauthError] = useState(false);
 
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -59,7 +77,11 @@ export default function SubscriberAreaLoginModal({
       if (res.ok) {
         const data = await res.json();
         localStorage.setItem('sessionToken', data.token);
-        router.push(`/assinante/${data.userId}`);
+        
+        if (onLoginSuccess) {
+          onLoginSuccess(data.userId);
+        }
+        
         onClose();
       } 
       else if (res.status === 401) {
@@ -86,7 +108,7 @@ export default function SubscriberAreaLoginModal({
     } finally {
       setIsLoading(false);
     }
-  }, [accessEmail, accessPassword, router, resendConfirmation, onClose, validateEmail]);
+  }, [accessEmail, accessPassword, resendConfirmation, onClose, validateEmail, onLoginSuccess]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
@@ -117,6 +139,40 @@ export default function SubscriberAreaLoginModal({
       setIsLoading(false);
     }
   }, [resetEmail, validateEmail]);
+
+  const handleGoogleSignIn = useCallback(() => {
+    // Check if stack and seniority are selected
+    if (!oauthStack || !oauthSeniority) {
+      setShowOauthError(true);
+      return;
+    }
+    setShowOauthError(false);
+
+    // Store params in sessionStorage for OAuth flow
+    sessionStorage.setItem('oauth_params', JSON.stringify({ 
+      stack: oauthStack, 
+      seniorityLevel: oauthSeniority 
+    }));
+
+    // Build callback URL with params
+    const cb = `${window.location.origin}/auth/callback`
+            + `?stack=${encodeURIComponent(oauthStack)}`
+            + `&seniorityLevel=${encodeURIComponent(oauthSeniority)}`;
+
+    signIn("google", { 
+      callbackUrl: cb,
+      redirect: true 
+    });
+  }, [oauthStack, oauthSeniority]);
+
+  // Reset OAuth fields when modal closes
+  useCallback(() => {
+    if (!isOpen) {
+      setOauthStack("");
+      setOauthSeniority("");
+      setShowOauthError(false);
+    }
+  }, [isOpen]);
 
   return (
     <AnimatePresence>
@@ -194,11 +250,74 @@ export default function SubscriberAreaLoginModal({
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  
-                  
+                </div>
+
+                {/* OAuth Sign-in Options */}
+                <div className="mt-6 space-y-3">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-gray-300" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">
+                        Ou continue com
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Stack and Seniority selection for OAuth */}
+                  <div className="space-y-3">
+                    <Select value={oauthStack} onValueChange={setOauthStack}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione sua área" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          'frontend',
+                          'backend',
+                          'fullstack',
+                          'mobile',
+                          'dados',
+                          'design'
+                        ].map(area => (
+                          <SelectItem key={area} value={area}>
+                            {area === 'design' ? 'Designer UI/UX' : area.charAt(0).toUpperCase() + area.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    <Select value={oauthSeniority} onValueChange={setOauthSeniority}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Selecione seu nível profissional" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {["junior", "pleno", "senior"].map(level => (
+                          <SelectItem key={level} value={level}>
+                            {level.charAt(0).toUpperCase() + level.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
+                    {showOauthError && (
+                      <p className="text-red-500 text-sm text-center">
+                        Por favor, selecione sua área e nível profissional antes de continuar com Google.
+                      </p>
+                    )}
+
+                    <Button
+                      variant="outline"
+                      className="w-full cursor-pointer"
+                      onClick={handleGoogleSignIn}
+                      disabled={isLoading}
+                    >
+                      <FaGoogle className="mr-2" /> Google
+                    </Button>
+                  </div>
                 </div>
                 
-                <div className="flex justify-center  mt-6">
+                <div className="flex justify-center mt-6">
                    <Button 
                     variant="ghost" 
                     size="sm"
@@ -227,8 +346,6 @@ export default function SubscriberAreaLoginModal({
                     </Button>
                   </div>
                 </div>
-
-               
               </>
             )}
           </motion.div>

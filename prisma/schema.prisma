@@ -34,7 +34,7 @@ model users {
   emailVerified  DateTime?
   image          String?
   seniorityLevel String?
-  stack          String?
+  stacks          String[]
   isConfirmed    Boolean   @default(false)
   unsubscribed   Boolean   @default(false)
   createdAt      DateTime  @default(now())
