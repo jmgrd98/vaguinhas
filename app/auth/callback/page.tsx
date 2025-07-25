@@ -177,7 +177,7 @@ export default function AuthCallback() {
               email: session.user.email,
               stack,
               seniorityLevel,
-              provider: session.user.provider || (session.user as any).provider || 'oauth',
+              provider: session.user.provider || session.user.provider || 'oauth',
               providerId: session.user.id,
               // Only include values that exist
               ...(session.user.profile?.headline && { headline: session.user.profile.headline }),
