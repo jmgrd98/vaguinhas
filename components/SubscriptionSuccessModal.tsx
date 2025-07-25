@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react"; // Import X icon from lucide-react
 
 interface SubscriptionSuccessModalProps {
   isOpen: boolean;
@@ -26,8 +27,17 @@ const SubscriptionSuccessModal = ({
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
-            className="bg-black text-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl border border-[#FF914D]"
+            className="bg-black text-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl border border-[#FF914D] relative"
           >
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              aria-label="Close modal"
+            >
+              <X size={24} />
+            </button>
+
             <div className="text-center">
               <div className="text-[#FF914D] text-5xl mb-4">🎉</div>
               <h2 className="text-2xl font-bold mb-2">Cadastro feito!</h2>
@@ -52,12 +62,14 @@ const SubscriptionSuccessModal = ({
                     : "Reenviar confirmação"}
                 </button>
                 
-                <button
-                  onClick={onClose}
-                  className="py-3 px-4 rounded-lg bg-white text-black font-bold hover:bg-gray-200 transition-colors"
+                <a
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  href="https://github.com/jmgrd98/vaguinhas"
+                  className="py-3 px-4 rounded-lg bg-white text-black font-bold hover:bg-gray-200 transition-colors cursor-pointer"
                 >
-                  Fechar
-                </button>
+                  Deixe uma estrela em nosso repo no Github ⭐
+                </a>
               </div>
             </div>
           </motion.div>

@@ -22,6 +22,18 @@ function isRateLimited(token: string, limit = 5) {
   return false;
 }
 
+/**
+ * Fisher-Yates shuffle algorithm to randomize array in-place
+ */
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array]; // Create a copy to avoid mutating original
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
   for (const email of emails) {
     try {
@@ -62,12 +74,16 @@ export async function GET(req: Request) {
       );
     }
 
-    await throttleEmails(emails, sendNewUpdateEmail, 1500);
+    // Randomize the email list to avoid same users being affected on timeout
+    const randomizedEmails = shuffleArray(emails);
+    console.log(`Randomized ${randomizedEmails.length} email recipients`);
+
+    await throttleEmails(randomizedEmails, sendNewUpdateEmail, 1500);
 
     return NextResponse.json(
       { 
-        message: `Emails queued for ${emails.length} recipients`,
-        emailsSent: emails.length
+        message: `Emails queued for ${randomizedEmails.length} recipients`,
+        emailsSent: randomizedEmails.length
       },
       { status: 200 }
     );
