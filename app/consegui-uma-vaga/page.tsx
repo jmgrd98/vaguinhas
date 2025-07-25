@@ -175,6 +175,7 @@ function ConseguiUmaVagaContent() {
               E-mail
             </Label>
             <Input
+              disabled
               ref={inputRef}
               type="email"
               placeholder="Insira seu e-mail"

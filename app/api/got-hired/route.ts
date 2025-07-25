@@ -3,7 +3,17 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { z } from "zod";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
-import type { GotHiredMessage } from "@/types/user"; // Add this import
+import { Collection, UpdateFilter } from "mongodb";
+import type { GotHiredMessage } from "@/types/user";
+
+// Define the User interface to match your MongoDB schema
+interface User {
+  _id?: string;
+  email: string;
+  messages: GotHiredMessage[];
+  lastHiredAt?: Date;
+  // Add other user fields as needed
+}
 
 const emailSchema = z.string().email().transform(email => email.toLowerCase());
 const requestSchema = z.object({
@@ -67,9 +77,11 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     
     const { email: normalizedEmail, company, role, message } = validation.data;
 
-    // Database operations
+    // Database operations with proper typing
     const { db } = await connectToDatabase();
-    const user = await db.collection("users").findOne({ email: normalizedEmail });
+    const usersCollection: Collection<User> = db.collection<User>("users");
+    
+    const user = await usersCollection.findOne({ email: normalizedEmail });
     
     if (!user) {
       return NextResponse.json(
@@ -80,23 +92,26 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // Create the hire message object
     const hireMessage: GotHiredMessage = {
-        company,
-        role,
-        message: message || null,
-        createdAt: new Date(),
+      company,
+      role,
+      message: message || null,
+      createdAt: new Date(),
     };
 
-    // Update user document to append the new hire message
-    // Update user document to append the new hire message
-const updateResult = await db.collection("users").updateOne(
-  { email: normalizedEmail },
-  { 
-    $set: {
-    messages: [hireMessage],
-      lastHiredAt: new Date(),
-    },
-  }
-);
+    // Properly typed update operation
+    const updateDoc: UpdateFilter<User> = {
+      $push: {
+        messages: hireMessage
+      },
+      $set: {
+        lastHiredAt: new Date(),
+      }
+    };
+
+    const updateResult = await usersCollection.updateOne(
+      { email: normalizedEmail },
+      updateDoc
+    );
 
     if (updateResult.modifiedCount === 0) {
       return NextResponse.json(
