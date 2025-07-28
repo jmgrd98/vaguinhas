@@ -154,7 +154,7 @@ function FeedbackContent() {
 
         <div className="flex flex-col gap-4 items-center w-full max-w-[600px] mt-8">
           <p className="mb-4 text-lg sm:text-xl font-bold text-center">
-            Como foi sua experiência com o vaguinhas?
+            Como está sendo sua experiência com o vaguinhas?
           </p>
 
           <div className="w-full">
