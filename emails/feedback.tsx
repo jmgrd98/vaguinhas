@@ -10,6 +10,7 @@ import {
   Text,
   Hr,
   Img,
+  Link,
 } from '@react-email/components';
 import { 
     mainStyle,
@@ -53,11 +54,19 @@ const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
           <Section style={sectionStyle}>
             <Heading style={headingStyle}>Nós estamos em constante evolução!</Heading>
             <Text style={textStyle}>
-              E para isso gostamos de perguntar aos nossos assinantes se vocês possuem alguma dúvida, sugestão ou reclamação!
+              E para isso gostamos sempre de saber como está sendo a experiência dos nossos assinantes!
             </Text>
 
+            {/* Updated link insertion */}
             <Text style={textStyle}>
-              Responda a esse e-mail com qualquer feedback que você possa ter. Nós iremos ler todos e cada um dos e-mails! 😊
+              <Link
+                href="https://vaguinhas.com.br/feedback"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={linkStyle}
+              >
+                Clique aqui e deixe uma nota para o quanto você recomendaria o vaguinhas a alguém.
+              </Link>
             </Text>
             
             <Text style={textStyle}>
@@ -78,4 +87,4 @@ const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
   )
 }
 
-export default FeedbackEmail
+export default FeedbackEmail;
