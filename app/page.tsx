@@ -9,7 +9,13 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp, FaGithub, FaGoogle } from "react-icons/fa";
+import { 
+  FaWhatsapp, 
+  FaGithub, 
+  // FaGoogle, 
+  FaLinkedin 
+} from "react-icons/fa";
+import { FcGoogle } from 'react-icons/fc';
 import {
   Tooltip,
   TooltipContent,
@@ -28,16 +34,13 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-import { 
-  signIn,
-  // useSession 
-} from "next-auth/react";
-import LinkedInSignIn from "@/components/LinkedInSignIn";
+import { signIn } from "next-auth/react";
+// import LinkedInSignIn from "@/components/LinkedInSignIn";
 import { useRouter } from "next/navigation";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
-// Custom hooks
+// Custom hooks (keep as is)
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 0,
@@ -107,8 +110,6 @@ export default function Home() {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // const { data: session, status: sessionStatus } = useSession();
-
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     return emailSchema.safeParse(emailToValidate).success;
@@ -140,7 +141,7 @@ export default function Home() {
     }
   }, [router]);
 
-  // Form submission
+  // Form submission - This creates a new user
   const saveEmail = useCallback(async () => {
     if (!validateEmail(email)) {
       setValidationError("E-mail inválido");
@@ -207,16 +208,13 @@ export default function Home() {
         scheduleEmail("/api/emails/send-feedback-email", 600_000);
       } 
       else if (res.status === 409) {
+        // User already exists - direct them to login
         toast.warning("Esse e-mail já está cadastrado!", {
-          description: "Obrigado, seu e-mail já foi validado.",
+          description: "Por favor, faça login para acessar sua conta.",
         });
         
-        // If user already exists, redirect to login or subscriber area
-        if (responseData.userId) {
-          router.push(`/assinante/${responseData.userId}`);
-        } else {
-          setIsModalOpen(true); // Open login modal
-        }
+        // Open login modal instead of redirecting
+        setIsModalOpen(true);
       }
       else {
         throw new Error("Unexpected response status");
@@ -265,9 +263,8 @@ export default function Home() {
     }
   }, [setCooldown, setCanResend]);
 
-  // Update the handleGoogleSignIn function in your Home component
-
-  const handleGoogleSignIn = useCallback(async () => {
+  // OAuth signup handlers - For NEW users only
+  const handleGoogleSignUp = useCallback(async () => {
     if (!stack || !seniorityLevel) {
       setShowSelectionError(true);
       return;
@@ -275,32 +272,61 @@ export default function Home() {
     setShowSelectionError(false);
 
     // Store params in sessionStorage for OAuth flow
-    sessionStorage.setItem('oauth_params', JSON.stringify({ 
+    sessionStorage.setItem('oauth_signup_params', JSON.stringify({ 
       stack, 
       seniorityLevel,
-      timestamp: Date.now() // Add timestamp for validation
+      timestamp: Date.now()
     }));
 
-    // Build callback URL with params
+    // Build callback URL with params for signup
     const params = new URLSearchParams({
       stack: stack,
-      seniorityLevel: seniorityLevel
+      seniorityLevel: seniorityLevel,
+      isSignup: 'true' // Important flag to indicate this is a signup
     });
 
-    // Use signIn with explicit callback URL
     try {
-      const result = await signIn("google", { 
-        callbackUrl: `/auth/callback?${params.toString()}`,
+      // Redirect to the signup page with Google
+      await signIn("google", { 
+        callbackUrl: `/auth/signup-callback?${params.toString()}`,
         redirect: true 
       });
-      
-      // This won't execute if redirect: true, but kept for completeness
-      if (result?.error) {
-        toast.error('Failed to sign in with Google');
-      }
     } catch (error) {
-      console.error('Google sign-in error:', error);
-      toast.error('Failed to sign in with Google');
+      console.error('Google sign-up error:', error);
+      toast.error('Failed to sign up with Google');
+    }
+  }, [stack, seniorityLevel]);
+
+  const handleLinkedInSignUp = useCallback(async () => {
+    if (!stack || !seniorityLevel) {
+      setShowSelectionError(true);
+      return;
+    }
+    setShowSelectionError(false);
+
+    // Store params in sessionStorage for OAuth flow
+    sessionStorage.setItem('oauth_signup_params', JSON.stringify({ 
+      stack, 
+      seniorityLevel,
+      timestamp: Date.now()
+    }));
+
+    // Build callback URL with params for signup
+    const params = new URLSearchParams({
+      stack: stack,
+      seniorityLevel: seniorityLevel,
+      isSignup: 'true' // Important flag to indicate this is a signup
+    });
+
+    try {
+      // Redirect to the signup page with LinkedIn
+      await signIn("linkedin", { 
+        callbackUrl: `/auth/signup-callback?${params.toString()}`,
+        redirect: true 
+      });
+    } catch (error) {
+      console.error('LinkedIn sign-up error:', error);
+      toast.error('Failed to sign up with LinkedIn');
     }
   }, [stack, seniorityLevel]);
 
@@ -318,8 +344,6 @@ export default function Home() {
       <p className="mb-2 text-lg sm:text-xl font-bold text-center">
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
-
-      {/* Always show sign-in buttons */}
 
       {showSelectionError && (
         <p className="text-red-500 text-sm w-full text-center">
@@ -348,7 +372,6 @@ export default function Home() {
             'backend',
             'fullstack',
             'mobile',
-            // 'devops',
             'dados',
             'design'
           ].map(area => (
@@ -421,24 +444,31 @@ export default function Home() {
 
         {renderForm()}
         
+        {/* OAuth Signup Buttons - For NEW users */}
         <div className='flex flex-col gap-5 items-center w-full mt-8'>
+          <p className="text-sm text-gray-600">Ou cadastre-se com:</p>
+          
           <Button 
             disabled={!isOAuthEnabled} 
             className={`w-1/2 ${!isOAuthEnabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
-            onClick={() => handleGoogleSignIn()}
+            onClick={handleGoogleSignUp}
           >
-            <FaGoogle 
-              className={`mr-2 ${isOAuthEnabled ? 'text-[#4285F4]' : 'text-gray-400'}`} 
+            <FcGoogle 
+              className={'mr-2'} 
             /> 
-            Sign in with Google
+            Cadastrar com Google
           </Button>
           
-          <LinkedInSignIn 
-            stack={stack} 
-            seniorityLevel={seniorityLevel} 
-            // disabled={!isOAuthEnabled}
-            // iconClassName={isOAuthEnabled ? 'text-[#0A66C2]' : 'text-gray-400'}
-          />
+          <Button 
+            disabled={!isOAuthEnabled} 
+            className={`w-1/2 ${!isOAuthEnabled ? 'cursor-not-allowed' : 'cursor-pointer'}`} 
+            onClick={handleLinkedInSignUp}
+          >
+            <FaLinkedin
+              className={`mr-2 ${isOAuthEnabled ? 'text-[#0A66C2]' : 'text-gray-400'}`} 
+            /> 
+            Cadastrar com LinkedIn
+          </Button>
         </div>
 
         <Button 
@@ -499,7 +529,7 @@ export default function Home() {
         </Tooltip>
       </TooltipProvider>
 
-      {/* Subscriber Area Modal - Now passes onLoginSuccess callback */}
+      {/* Subscriber Area Modal - For existing users */}
       <SubscriberAreaLoginModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

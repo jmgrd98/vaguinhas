@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   FaEye,
   FaEyeSlash,
-  FaGoogle,
+  // FaGoogle,
   FaLinkedin 
 } from "react-icons/fa";
+import { FcGoogle } from 'react-icons/fc';
 import { signIn } from "next-auth/react";
 
 interface SubscriberAreaLoginModalProps {
@@ -262,7 +263,7 @@ export default function SubscriberAreaLoginModal({
                       onClick={handleGoogleSignIn}
                       disabled={isLoading}
                     >
-                      <FaGoogle className="mr-2 text-[#4285F4]" /> Google
+                      <FcGoogle className="mr-2" /> Google
                     </Button>
 
                     <Button

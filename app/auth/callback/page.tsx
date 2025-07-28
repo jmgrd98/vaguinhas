@@ -112,7 +112,7 @@ export default function AuthCallback() {
             
             try {
               // Check if user exists in database
-              const checkResponse = await fetch('/api/users/check-exists', {
+              const checkResponse = await fetch('/api/users/check-if-exists', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
@@ -120,9 +120,9 @@ export default function AuthCallback() {
                 },
                 body: JSON.stringify({ email: session.user.email }),
               });
-
-              const checkData = await checkResponse.json();
               
+              const checkData = await checkResponse.json();
+              console.log('CHECK DATA:', checkData);
               if (checkData.exists && checkData.user) {
                 // User exists, redirect to their subscriber area
                 addDebugInfo('User exists, redirecting to subscriber area');

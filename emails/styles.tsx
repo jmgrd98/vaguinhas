@@ -45,6 +45,7 @@ export const textStyle: React.CSSProperties = {
 export const linkStyle: React.CSSProperties = {
   color: '#ff914d',
   textDecoration: 'none',
+  fontWeight: 'bold'
 };
 
 export const hrStyle: React.CSSProperties = {

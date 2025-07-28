@@ -6,7 +6,6 @@ import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { LinkedInProfile as NextAuthLinkedInProfile } from 'next-auth/providers/linkedin';
 
-
 // Define custom types for extended profiles
 interface LinkedInProfile extends NextAuthLinkedInProfile {
   sub: string;
@@ -93,6 +92,13 @@ export const authOptions: NextAuthOptions = {
     GoogleProvider({
       clientId: process.env.VAGUINHAS_GOOGLE_CLIENT_ID!,
       clientSecret: process.env.VAGUINHAS_GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     LinkedInProvider({
       clientId: process.env.LINKEDIN_CLIENT_ID!,
@@ -148,116 +154,75 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account, profile, email, credentials }) {
       if (account?.provider === "linkedin" || account?.provider === "google") {
         try {
           const { db } = await connectToDatabase();
-          const emailType = extractEmailType(user.email!);
-
-          // Type assertion based on provider
-          const extendedProfile = account.provider === "linkedin" 
-            ? profile as LinkedInProfile 
-            : profile as GoogleProfile;
-
-          // Prepare base user data
-          const userData: Partial<UserDocument> = {
-            email: user.email?.toLowerCase(),
-            name: user.name,
-            image: user.image,
-            oauthProvider: account.provider,
-            oauthProviderId: account.providerAccountId || user.id,
-            emailType,
-            lastLogin: new Date(),
-            updatedAt: new Date(),
-          };
-
-          // Add LinkedIn-specific fields (from OpenID Connect)
-          if (account.provider === "linkedin" && 'given_name' in extendedProfile) {
-            const linkedInProfile = extendedProfile as LinkedInProfile;
-            userData.givenName = linkedInProfile.givenName || linkedInProfile.given_name;
-            userData.familyName = linkedInProfile.familyName || linkedInProfile.family_name;
-            userData.locale = linkedInProfile.locale;
-            userData.location = linkedInProfile.location;
-            userData.emailVerified = linkedInProfile.email_verified;
-          }
-
-          // Add Google-specific fields
-          if (account.provider === "google" && 'given_name' in extendedProfile) {
-            const googleProfile = extendedProfile as GoogleProfile;
-            userData.givenName = googleProfile.given_name;
-            userData.familyName = googleProfile.family_name;
-            userData.emailVerified = googleProfile.email_verified;
-            userData.locale = googleProfile.locale;
-          }
-
-          // Check if user exists
+          
+          // Check if user exists with the provided email
           const existingUser = await db.collection<UserDocument>("users").findOne({
             email: user.email?.toLowerCase()
           });
 
+          // If no user exists, block the sign-in (user needs to sign up first)
           if (!existingUser) {
-            // New user - create with all fields
-            const newUser: Omit<UserDocument, '_id'> = {
-              email: userData.email!,
-              name: userData.name,
-              image: userData.image,
-              oauthProvider: userData.oauthProvider!,
-              oauthProviderId: userData.oauthProviderId!,
-              emailType: userData.emailType!,
-              lastLogin: userData.lastLogin!,
-              updatedAt: userData.updatedAt!,
-              givenName: userData.givenName || '',
-              familyName: userData.familyName || '',
-              locale: userData.locale || '',
-              location: userData.location || '',
-              emailVerified: userData.emailVerified || false,
-              confirmed: true,
-              isActive: true,
-              createdAt: new Date(),
-              stacks: [],
-              seniorityLevel: "",
-              headline: "",
-              industry: "",
-              profileUrl: "",
-            };
-
-            const result = await db.collection<UserDocument>("users").insertOne(newUser);
-            
-            // Set the MongoDB _id as the user id
-            user.id = result.insertedId.toString();
-            console.log('Created new user with ID:', user.id);
-          } else {
-            // Existing user - update with new info
-            await db.collection<UserDocument>("users").updateOne(
-              { _id: existingUser._id },
-              { 
-                $set: userData,
-                // Preserve existing fields that aren't in the OAuth response
-                $setOnInsert: {
-                  headline: existingUser.headline || "",
-                  industry: existingUser.industry || "",
-                  profileUrl: existingUser.profileUrl || "",
-                  stacks: existingUser.stacks || [],
-                  seniorityLevel: existingUser.seniorityLevel || ""
-                }
-              }
-            );
-            user.id = existingUser._id.toString();
-            console.log('Updated existing user with ID:', user.id);
+            console.error(`Sign-in blocked: No user found with email ${user.email}`);
+            throw new Error("NO_USER_FOUND");
           }
+
+          // If user exists with a different provider, block the sign-in
+          if (existingUser.oauthProvider !== account.provider) {
+            console.error(`Sign-in blocked: User with email ${user.email} registered with ${existingUser.oauthProvider}, attempted to sign in with ${account.provider}`);
+            throw new Error(`PROVIDER_MISMATCH:${existingUser.oauthProvider}`);
+          }
+
+          // User exists with the correct provider - update last login
+          await db.collection<UserDocument>("users").updateOne(
+            { _id: existingUser._id },
+            { 
+              $set: {
+                lastLogin: new Date(),
+                updatedAt: new Date(),
+                // Update image in case it changed
+                image: user.image || existingUser.image,
+                // Update name in case it changed
+                name: user.name || existingUser.name
+              }
+            }
+          );
+          
+          // Set the MongoDB _id as the user id
+          user.id = existingUser._id.toString();
+          console.log('User signed in successfully with ID:', user.id);
           
           return true;
         } catch (error) {
           console.error("Error in signIn callback:", error);
+          // Re-throw specific errors to be handled by NextAuth
+          if (error instanceof Error && 
+              (error.message === 'NO_USER_FOUND' || 
+               error.message.startsWith('PROVIDER_MISMATCH:'))) {
+            throw error;
+          }
           return false;
         }
       }
       return true;
     },
     async redirect({ url, baseUrl }) {
-      console.log('URL:', url);
-      // Always redirect to callback page after OAuth
-      return `${baseUrl}/auth/callback`;
+      console.log('Redirect callback - URL:', url);
+      
+      // Parse the URL to check for fromLogin parameter
+      const urlObj = new URL(url, baseUrl);
+      const fromLogin = urlObj.searchParams.get('fromLogin');
+      
+      // Preserve the fromLogin parameter in the callback URL
+      const callbackUrl = new URL(`${baseUrl}/auth/callback`);
+      if (fromLogin === 'true') {
+        callbackUrl.searchParams.set('fromLogin', 'true');
+      }
+      
+      return callbackUrl.toString();
     },
     async session({ session, token }) {
       const extendedToken = token as ExtendedJWT;
@@ -314,7 +279,7 @@ export const authOptions: NextAuthOptions = {
     },
   },
   pages: {
-    signIn: "/",
+    signIn: "/signin",
     error: "/auth/error",
   },
   session: {
@@ -322,3 +287,67 @@ export const authOptions: NextAuthOptions = {
   },
   debug: process.env.NODE_ENV === "development",
 };
+
+// Separate function to handle user registration/signup
+export async function createUser(
+  email: string,
+  provider: string,
+  providerId: string,
+  profile: Partial<UserDocument>
+): Promise<{ success: boolean; userId?: string; error?: string }> {
+  try {
+    const { db } = await connectToDatabase();
+    
+    // Check if user already exists
+    const existingUser = await db.collection<UserDocument>("users").findOne({
+      email: email.toLowerCase()
+    });
+    
+    if (existingUser) {
+      return { 
+        success: false, 
+        error: `User already exists with provider: ${existingUser.oauthProvider}` 
+      };
+    }
+    
+    // Create new user
+    const newUser: Omit<UserDocument, '_id'> = {
+      email: email.toLowerCase(),
+      name: profile.name || null,
+      image: profile.image || null,
+      oauthProvider: provider,
+      oauthProviderId: providerId,
+      emailType: extractEmailType(email),
+      lastLogin: new Date(),
+      updatedAt: new Date(),
+      givenName: profile.givenName || '',
+      familyName: profile.familyName || '',
+      locale: profile.locale || '',
+      location: profile.location || '',
+      emailVerified: profile.emailVerified || false,
+      confirmed: true,
+      isActive: true,
+      createdAt: new Date(),
+      stacks: [],
+      seniorityLevel: "",
+      headline: "",
+      industry: "",
+      profileUrl: "",
+    };
+    
+    const result = await db.collection<UserDocument>("users").insertOne(newUser);
+    
+    return { 
+      success: true, 
+      userId: result.insertedId.toString() 
+    };
+  } catch (error) {
+    console.error("Error creating user:", error);
+    return { 
+      success: false, 
+      error: "Failed to create user" 
+    };
+  }
+}
+
+export default authOptions;
