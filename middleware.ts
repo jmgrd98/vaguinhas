@@ -12,8 +12,7 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    // Remove the subscriber route from protection
     "/assinante/:path*",
-    "/api/users/:path*"
+    "/api/users/:id",
   ],
 };
