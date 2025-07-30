@@ -13,6 +13,7 @@ import ConfirmationEmail from '@/emails/confirmation';
 import FavoriteGithubEmail from '@/emails/favourite-on-github';
 import AdminNotificationEmail from '@/emails/admin-notification';
 import ConfirmEmailReminder from '@/emails/confirm-email-reminder';
+import MagicLinkEmail from '@/emails/magic-link';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
 
@@ -303,6 +304,28 @@ export async function sendPasswordResetEmail(email: string, token: string) {
     ...baseMailOptions,
     to: email,
     subject: "Redefina sua senha 🧡",
+    html,
+  };
+
+  return transporter.sendMail(mailOptions);
+}
+
+export async function sendMagicLinkEmail(email: string, token: string) {
+  const magicLink = `${process.env.NEXTAUTH_URL}/verify-magic-link?token=${token}`;
+  const html = await render(
+    <MagicLinkEmail
+      magicLink={magicLink}
+      currentYear={new Date().getFullYear().toString()}
+    />
+  )
+  if (!LOGO_BASE64) {
+    throw new Error("VAGUINHAS_LOGO is not defined");
+  }
+
+  const mailOptions = {
+    ...baseMailOptions,
+    to: email,
+    subject: "Acesse sua conta 🧡",
     html,
   };
 

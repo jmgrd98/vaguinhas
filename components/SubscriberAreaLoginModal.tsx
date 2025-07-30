@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaMagic } from "react-icons/fa";
+
 
 interface SubscriberAreaLoginModalProps {
   isOpen: boolean;
@@ -25,10 +27,43 @@ export default function SubscriberAreaLoginModal({
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
+  const [useMagicLink, setUseMagicLink] = useState(false);
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
+
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(emailToValidate);
   }, []);
+
+  const handleSendMagicLink = useCallback(async () => {
+    if (!validateEmail(accessEmail)) {
+      toast.error("Por favor, insira um e-mail válido");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: accessEmail }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMagicLinkSent(true);
+        toast.success("Link mágico enviado! Verifique seu e-mail.");
+      } else {
+        toast.error(data.message || "Erro ao enviar link de acesso");
+      }
+    } catch (error) {
+      console.error('Magic link error:', error);
+      toast.error("Erro ao enviar link de acesso");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [accessEmail, validateEmail]);
 
   const handleSubscriberAccess = useCallback(async () => {
     if (!validateEmail(accessEmail)) {
@@ -168,16 +203,19 @@ export default function SubscriberAreaLoginModal({
               </>
             ) : (
               <>
-                <h2 className="text-xl font-bold mb-4">Acessar Área do Assinante</h2>
+              <h2 className="text-xl font-bold mb-4">Acessar Área do Assinante</h2>
+              
+              <div className="space-y-4">
+                <Input
+                  type="email"
+                  placeholder="Insira seu e-mail cadastrado"
+                  value={accessEmail}
+                  onChange={(e) => setAccessEmail(e.target.value)}
+                  className="w-full"
+                />
                 
-                <div className="space-y-4">
-                  <Input
-                    type="email"
-                    placeholder="Insira seu e-mail cadastrado"
-                    value={accessEmail}
-                    onChange={(e) => setAccessEmail(e.target.value)}
-                    className="w-full"
-                  />
+                {/* Conditional rendering based on login method */}
+                {!useMagicLink ? (
                   <div className="relative w-full">
                     <Input
                       type={showPassword ? 'text' : 'password'}
@@ -194,42 +232,71 @@ export default function SubscriberAreaLoginModal({
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  
-                  
-                </div>
-                
-                <div className="flex justify-center  mt-6">
-                   <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setShowResetForm(true)}
-                    className="text-[12px] mt-2 justify-start w-1/2 text-black hover:text-blue-500 hover:bg-transparent cursor-pointer"
+                ) : magicLinkSent ? (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
+                    <FaMagic className="mx-auto text-blue-500 text-2xl mb-2" />
+                    <p className="text-blue-700">
+                      Link enviado para <span className="font-semibold">{accessEmail}</span>
+                    </p>
+                    <p className="text-sm text-blue-600 mt-1">
+                      Verifique sua caixa de entrada e spam
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+              
+              <div className="flex flex-col gap-3 mt-6">
+                {/* Magic Link / Password toggle */}
+                {!magicLinkSent && (
+                  <button
+                    onClick={() => setUseMagicLink(!useMagicLink)}
+                    className="text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center"
                   >
-                    Esqueceu a sua senha?
-                  </Button>
-
+                    {useMagicLink 
+                      ? "Acessar com senha" 
+                      : "Acessar com link mágico"}
+                    <FaMagic className="ml-2" />
+                  </button>
+                )}
+                
+                <div className="flex justify-between items-center">
+                  {!useMagicLink && (
+                    <button
+                      onClick={() => setShowResetForm(true)}
+                      className="text-sm text-gray-600 hover:text-blue-600"
+                    >
+                      Esqueceu sua senha?
+                    </button>
+                  )}
+                  
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
                       onClick={onClose}
                       disabled={isLoading}
-                      className="cursor-pointer"
                     >
                       Cancelar
                     </Button>
+                    
                     <Button
                       variant="default"
-                      onClick={handleSubscriberAccess}
-                      disabled={isLoading || !accessEmail || !accessPassword}
-                      className="cursor-pointer"
+                      onClick={
+                        useMagicLink ? handleSendMagicLink : handleSubscriberAccess
+                      }
+                      disabled={
+                        isLoading || 
+                        !accessEmail || 
+                        (!useMagicLink && !accessPassword)
+                      }
                     >
-                      {isLoading ? "Carregando..." : "Acessar"}
+                      {isLoading 
+                        ? "Carregando..." 
+                        : useMagicLink ? "Enviar Link" : "Acessar"}
                     </Button>
                   </div>
                 </div>
-
-               
-              </>
+              </div>
+            </>
             )}
           </motion.div>
         </div>

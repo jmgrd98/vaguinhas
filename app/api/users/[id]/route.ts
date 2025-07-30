@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/nextAuth";
 
 const updateSchema = z.object({
   seniorityLevel: z.string().min(1, "Seniority level is required"),
@@ -12,12 +14,30 @@ export async function GET(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json(
+      { message: "Unauthorized - Please login" },
+      { status: 401 }
+    );
+  }
+
   const { id } = await context.params;
+
+  // Check authorization - users can only access their own data
+  if (session.user.id !== id) {
+    return NextResponse.json(
+      { message: "Forbidden - You can only access your own data" },
+      { status: 403 }
+    );
+  }
 
   try {
     const { db } = await connectToDatabase();
     
-    if (!ObjectId.isValid(id)) { // Use destructured 'id'
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
@@ -25,7 +45,7 @@ export async function GET(
     }
 
     const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(id) // Use destructured 'id'
+      _id: new ObjectId(id)
     });
 
     if (!user) {
@@ -42,7 +62,8 @@ export async function GET(
       seniorityLevel,
       stacks,
       confirmed,
-      createdAt
+      createdAt,
+      subscriberId: _id.toString() // Add this to match what the client expects
     }, { status: 200 });
     
   } catch (error) {
@@ -58,12 +79,30 @@ export async function PUT(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  // Check authentication first
+  const session = await getServerSession(authOptions);
+  
+  if (!session) {
+    return NextResponse.json(
+      { message: "Unauthorized - Please login" },
+      { status: 401 }
+    );
+  }
+
   const { id } = await context.params;
+
+  // Check authorization - users can only update their own data
+  if (session.user.id !== id) {
+    return NextResponse.json(
+      { message: "Forbidden - You can only update your own data" },
+      { status: 403 }
+    );
+  }
 
   try {
     const { db } = await connectToDatabase();
     
-    if (!ObjectId.isValid(id)) { // Use destructured 'id'
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
