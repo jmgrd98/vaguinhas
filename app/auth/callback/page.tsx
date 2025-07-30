@@ -1,62 +1,87 @@
+// app/verify-magic-link/page.tsx
 'use client';
-
-import { useEffect } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
 
-export default function OAuthBridge() {
-  const { data: session, status } = useSession();
-  const params = useSearchParams();
+export default function MagicLinkVerification() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
+  const [progress, setProgress] = useState(0);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (status !== 'authenticated') return;  // wait until we have a session
-    if (!session?.user?.email) {
-      toast.error('Não foi possível obter seu e‑mail do Google.');
-      return;
-    }
+    const verifyToken = async () => {
+      if (!token) {
+        toast.error('Link inválido');
+        setTimeout(() => router.push('/'), 1500);
+        return;
+      }
 
-    // grab your metadata out of the URL
-    const stack = params.get('stack')!;
-    const seniorityLevel = params.get('seniorityLevel')!;
-    const callbackRaw = params.get('callbackUrl') || '/';
+      try {
+        // Simulate progress
+        const interval = setInterval(() => {
+          setProgress(prev => Math.min(prev + 10, 90));
+        }, 300);
 
-    // call your subscribe API
-    fetch('/api/subscribe', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // if your subscribe route also expects the secret header:
-        'Authorization': `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-      },
-      body: JSON.stringify({
-        email: session.user.email,
-        stacks: [stack],
-        seniorityLevel
-      })
-    })
-      .then(async res => {
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.message || `Status ${res.status}`);
+        // Use the magic-link provider
+        const result = await signIn('magic-link', {
+          token,
+          redirect: false,
+        });
+
+        clearInterval(interval);
+        setProgress(100);
+
+        if (result?.error) {
+          throw new Error(result.error);
         }
-        return res.json() as Promise<{ id: string }>;
-      })
-      .then(({ id }) => {
-        // finally redirect into the subscriber area
-        router.replace(`/assinante/${id}`);
-      })
-      .catch(err => {
-        console.error(err);
-        toast.error('Erro ao criar sua conta de assinante.');
-        router.replace(callbackRaw); // send them back home (or wherever)
-      });
-  }, [status, session, params, router]);
+
+        if (result?.ok) {
+          // Wait a moment for session to update
+          setTimeout(() => {
+            // Session will be available after successful sign in
+          }, 500);
+        }
+      } catch (error) {
+        console.error('Verification error:', error);
+        toast.error('Link inválido ou expirado');
+        setTimeout(() => router.push('/'), 1500);
+      }
+    };
+
+    verifyToken();
+  }, [token, router]);
+
+  // Watch for session changes after sign in
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      // Redirect to the user's specific page
+      router.push(`/assinante/${session.user.id}`);
+    }
+  }, [session, status, router]);
 
   return (
-    <div className="flex h-screen items-center justify-center">
-      <p>Carregando…</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Verificando seu acesso
+          </h1>
+          <p className="text-gray-600">
+            Estamos validando seu link de acesso
+          </p>
+        </div>
+        
+        <Progress value={progress} className="h-2.5" />
+        
+        <div className="text-center text-sm text-gray-500 mt-4">
+          <p>Por favor aguarde, este processo pode levar alguns segundos...</p>
+        </div>
+      </div>
     </div>
   );
 }

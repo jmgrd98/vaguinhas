@@ -13,6 +13,6 @@ export default withAuth({
 export const config = {
   matcher: [
     "/assinante/:path*",
-    "/api/users/:id",
+    "/api/users/:id*",
   ],
 };
