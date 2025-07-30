@@ -25,12 +25,14 @@ import {
     footerStyle
 } from './styles';
 
-interface FavoriteGithubEmailProps {
+interface MagicLinkEmailProps {
+  magicLink: string;
   currentYear: string | number;
   useCid?: boolean;
 }
 
-const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
+const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({
+  magicLink,
   currentYear,
   useCid = false
 }) => {
@@ -52,20 +54,17 @@ const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
 
           {/* Heading and Content */}
           <Section style={sectionStyle}>
-            <Heading style={headingStyle}>Nós estamos em constante evolução!</Heading>
-            <Text style={textStyle}>
-              E para isso gostamos sempre de saber como está sendo a experiência dos nossos assinantes!
-            </Text>
+            <Heading style={headingStyle}>Acesse sua conta</Heading>
 
             {/* Updated link insertion */}
             <Text style={textStyle}>
               <Link
-                href="https://vaguinhas.com.br/feedback"
+                href={`${magicLink}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={linkStyle}
               >
-                Clique aqui e deixe uma nota para o quanto você recomendaria o vaguinhas a alguém.
+                Clique aqui para acessar sua área do assinante.
               </Link>
             </Text>
             
@@ -87,4 +86,4 @@ const FeedbackEmail: React.FC<FavoriteGithubEmailProps> = ({
   )
 }
 
-export default FeedbackEmail;
+export default MagicLinkEmail;

@@ -17,7 +17,7 @@ export async function GET(
   try {
     const { db } = await connectToDatabase();
     
-    if (!ObjectId.isValid(id)) { // Use destructured 'id'
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
@@ -25,7 +25,7 @@ export async function GET(
     }
 
     const user = await db.collection("users").findOne({ 
-      _id: new ObjectId(id) // Use destructured 'id'
+      _id: new ObjectId(id)
     });
 
     if (!user) {
@@ -42,7 +42,8 @@ export async function GET(
       seniorityLevel,
       stacks,
       confirmed,
-      createdAt
+      createdAt,
+      subscriberId: _id.toString() // Add this to match what the client expects
     }, { status: 200 });
     
   } catch (error) {
@@ -63,7 +64,7 @@ export async function PUT(
   try {
     const { db } = await connectToDatabase();
     
-    if (!ObjectId.isValid(id)) { // Use destructured 'id'
+    if (!ObjectId.isValid(id)) {
       return NextResponse.json(
         { message: "Invalid user ID format" },
         { status: 400 }
