@@ -2,7 +2,13 @@
 import { redirect } from "next/navigation";
 import SubscriberPageClient from "./SubscriberPageClient";
 
-export default async function SubscriberPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: {
+    id: string;
+  };
+}
+
+export default async function SubscriberPage({ params }: PageProps) {
   const userId = params.id;
   
   if (!userId) {
