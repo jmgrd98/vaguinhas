@@ -39,7 +39,7 @@ const MagicLinkEmail: React.FC<MagicLinkEmailProps> = ({
   return (
     <Html>
       <Head />
-      <Preview>Nós estamos em constante evolução!</Preview>
+      <Preview>Acesse sua conta</Preview>
       <Body style={mainStyle}>
         <Container style={containerStyle}>
           {/* Logo Section - Updated with conditional source */}
