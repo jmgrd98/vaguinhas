@@ -9,7 +9,7 @@ interface PageProps {
 }
 
 export default async function SubscriberPage({ params }: PageProps) {
-  const userId = params.id;
+  const { id: userId} = await params;
   
   if (!userId) {
     redirect("/");
