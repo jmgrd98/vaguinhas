@@ -32,6 +32,32 @@ export const authOptions: NextAuthOptions = {
         return null;
       },
     }),
+     CredentialsProvider({
+      id: "magic-link",
+      name: "Magic Link",
+      credentials: {
+        token: { label: "Token", type: "text" },
+      },
+      async authorize(credentials) {
+        if (!credentials?.token) return null;
+        
+        // Verify the token directly
+        const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify-magic-link`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: credentials.token }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          return {
+            id: data.userId,
+            email: data.email,
+          };
+        }
+        return null;
+      },
+    }),
   ],
   callbacks: {
     async session({ session, token }) {

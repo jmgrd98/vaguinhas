@@ -1,57 +1,68 @@
+// app/verify-magic-link/page.tsx
 'use client';
-
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 
 export default function MagicLinkVerification() {
   const router = useRouter();
-  const token = new URLSearchParams(window.location.search).get('token');
+  const searchParams = useSearchParams();
+  const token = searchParams.get('token');
   const [progress, setProgress] = useState(0);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     const verifyToken = async () => {
+      if (!token) {
+        toast.error('Link inválido');
+        setTimeout(() => router.push('/'), 1500);
+        return;
+      }
+
       try {
-        // Simulate progress for better UX
+        // Simulate progress
         const interval = setInterval(() => {
           setProgress(prev => Math.min(prev + 10, 90));
         }, 300);
 
-        const res = await fetch('/api/auth/verify-magic-link', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
+        // Use the magic-link provider
+        const result = await signIn('magic-link', {
+          token,
+          redirect: false,
         });
 
         clearInterval(interval);
         setProgress(100);
 
-        const data = await res.json();
+        if (result?.error) {
+          throw new Error(result.error);
+        }
 
-        if (res.ok) {
-          localStorage.setItem('sessionToken', data.token);
+        if (result?.ok) {
+          // Wait a moment for session to update
           setTimeout(() => {
-            router.push(`/assinante/${data.userId}`);
+            // Session will be available after successful sign in
           }, 500);
-        } else {
-          toast.error(data.message || 'Link inválido ou expirado');
-          setTimeout(() => router.push('/'), 1500);
         }
       } catch (error) {
         console.error('Verification error:', error);
-        toast.error('Erro na verificação');
+        toast.error('Link inválido ou expirado');
         setTimeout(() => router.push('/'), 1500);
       }
     };
 
-    if (token) {
-      verifyToken();
-    } else {
-      toast.error('Link inválido');
-      setTimeout(() => router.push('/'), 1500);
-    }
+    verifyToken();
   }, [token, router]);
+
+  // Watch for session changes after sign in
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      // Redirect to the user's specific page
+      router.push(`/assinante/${session.user.id}`);
+    }
+  }, [session, status, router]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
