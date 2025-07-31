@@ -29,6 +29,7 @@ export default function SubscriberAreaLoginModal({
 
   const [useMagicLink, setUseMagicLink] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [magicLinkEmail, setMagicLinkEmail] = useState(""); // Store the email that magic link was sent to
 
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,6 +54,7 @@ export default function SubscriberAreaLoginModal({
 
       if (res.ok) {
         setMagicLinkSent(true);
+        setMagicLinkEmail(accessEmail); // Store the email that was used
         toast.success("Link mágico enviado! Verifique seu e-mail.");
       } else {
         toast.error(data.message || "Erro ao enviar link de acesso");
@@ -153,6 +155,13 @@ export default function SubscriberAreaLoginModal({
     }
   }, [resetEmail, validateEmail]);
 
+  // Reset states when switching between magic link and password
+  const handleToggleLoginMethod = () => {
+    setUseMagicLink(!useMagicLink);
+    setMagicLinkSent(false);
+    setMagicLinkEmail("");
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -206,16 +215,19 @@ export default function SubscriberAreaLoginModal({
               <h2 className="text-xl font-bold mb-4">Acessar Área do Assinante</h2>
               
               <div className="space-y-4">
-                <Input
-                  type="email"
-                  placeholder="Insira seu e-mail cadastrado"
-                  value={accessEmail}
-                  onChange={(e) => setAccessEmail(e.target.value)}
-                  className="w-full"
-                />
+                {/* Only show input if magic link hasn't been sent */}
+                {!magicLinkSent && (
+                  <Input
+                    type="email"
+                    placeholder="Insira seu e-mail cadastrado"
+                    value={accessEmail}
+                    onChange={(e) => setAccessEmail(e.target.value)}
+                    className="w-full"
+                  />
+                )}
                 
                 {/* Conditional rendering based on login method */}
-                {!useMagicLink ? (
+                {!useMagicLink && !magicLinkSent ? (
                   <div className="relative w-full">
                     <Input
                       type={showPassword ? 'text' : 'password'}
@@ -236,11 +248,21 @@ export default function SubscriberAreaLoginModal({
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                     <FaMagic className="mx-auto text-blue-500 text-2xl mb-2" />
                     <p className="text-blue-700">
-                      Link enviado para <span className="font-semibold">{accessEmail}</span>
+                      Link enviado para <span className="font-semibold">{magicLinkEmail}</span>
                     </p>
                     <p className="text-sm text-blue-600 mt-1">
                       Verifique sua caixa de entrada e spam
                     </p>
+                    <button
+                      onClick={() => {
+                        setMagicLinkSent(false);
+                        setMagicLinkEmail("");
+                        setAccessEmail("");
+                      }}
+                      className="mt-3 text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Enviar para outro e-mail
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -249,7 +271,7 @@ export default function SubscriberAreaLoginModal({
                 {/* Magic Link / Password toggle */}
                 {!magicLinkSent && (
                   <button
-                    onClick={() => setUseMagicLink(!useMagicLink)}
+                    onClick={handleToggleLoginMethod}
                     className="text-sm text-blue-600 hover:text-blue-800 flex items-center justify-center"
                   >
                     {useMagicLink 
@@ -260,7 +282,7 @@ export default function SubscriberAreaLoginModal({
                 )}
                 
                 <div className="flex justify-between items-center">
-                  {!useMagicLink && (
+                  {!useMagicLink && !magicLinkSent && (
                     <button
                       onClick={() => setShowResetForm(true)}
                       className="text-sm text-gray-600 hover:text-blue-600"
@@ -269,7 +291,7 @@ export default function SubscriberAreaLoginModal({
                     </button>
                   )}
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 ml-auto">
                     <Button
                       variant="outline"
                       onClick={onClose}
@@ -278,21 +300,23 @@ export default function SubscriberAreaLoginModal({
                       Cancelar
                     </Button>
                     
-                    <Button
-                      variant="default"
-                      onClick={
-                        useMagicLink ? handleSendMagicLink : handleSubscriberAccess
-                      }
-                      disabled={
-                        isLoading || 
-                        !accessEmail || 
-                        (!useMagicLink && !accessPassword)
-                      }
-                    >
-                      {isLoading 
-                        ? "Carregando..." 
-                        : useMagicLink ? "Enviar Link" : "Acessar"}
-                    </Button>
+                    {!magicLinkSent && (
+                      <Button
+                        variant="default"
+                        onClick={
+                          useMagicLink ? handleSendMagicLink : handleSubscriberAccess
+                        }
+                        disabled={
+                          isLoading || 
+                          !accessEmail || 
+                          (!useMagicLink && !accessPassword)
+                        }
+                      >
+                        {isLoading 
+                          ? "Carregando..." 
+                          : useMagicLink ? "Enviar Link" : "Acessar"}
+                      </Button>
+                    )}
                   </div>
                 </div>
               </div>
