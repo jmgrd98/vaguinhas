@@ -1,14 +1,9 @@
 // lib/nextAuth.ts
 import { NextAuthOptions } from "next-auth";
-// import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
   providers: [
-    // GoogleProvider({
-    //   clientId: process.env.GOOGLE_CLIENT_ID!,
-    //   clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    // }),
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -20,19 +15,49 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const { email, password } = credentials;
-        const user = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        });
-        if (user.ok) {
-          return user.json();
+        try {
+          const { email, password } = credentials;
+          const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
+            method: "POST",
+            headers: { 
+              "Content-Type": "application/json",
+              // Remove the Authorization header if your login endpoint doesn't need it
+              // "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+            },
+            body: JSON.stringify({ email, password }),
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            console.log('Login response:', data);
+            
+            // Return user object for NextAuth
+            // Make sure to return id, not userId
+            return {
+              id: data.userId || data.id || data._id,
+              email: data.email || email,
+              // Include any other user data you need
+              name: data.name,
+            };
+          }
+          
+          // Handle specific error cases
+          if (res.status === 401) {
+            throw new Error('Invalid credentials');
+          } else if (res.status === 403) {
+            throw new Error('Email not confirmed');
+          } else if (res.status === 404) {
+            throw new Error('User not found');
+          }
+          
+          return null;
+        } catch (error) {
+          console.error('Auth error:', error);
+          return null;
         }
-        return null;
       },
     }),
-     CredentialsProvider({
+    CredentialsProvider({
       id: "magic-link",
       name: "Magic Link",
       credentials: {
@@ -41,7 +66,6 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.token) return null;
         
-        // Verify the token directly
         const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify-magic-link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -51,7 +75,7 @@ export const authOptions: NextAuthOptions = {
         if (res.ok) {
           const data = await res.json();
           return {
-            id: data.userId,
+            id: data.userId || data.id || data._id,
             email: data.email,
           };
         }
@@ -60,25 +84,51 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    async jwt({ token, user }) {
+      // Initial sign in
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      if (session.user && token.sub) {
-        session.user.id = token.sub;
+      // Send properties to the client
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
       }
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-      }
-      return token;
-    }
   },
   secret: process.env.NEXTAUTH_SECRET,
-  // Add these important configurations:
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   pages: {
-    signIn: "/", // Your actual login page
+    signIn: "/",
+    signOut: "/",
+    error: "/", // Error code passed in query string as ?error=
   },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
+  },
+  debug: process.env.NODE_ENV === 'development', // Enable debug messages in development
+  events: {
+    async signIn({ user }) {
+      console.log('User signed in:', user);
+    },
+    async signOut(message) {
+      console.log('User signed out:', message);
+    }
+  }
 };

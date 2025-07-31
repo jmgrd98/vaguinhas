@@ -1,12 +1,11 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-// import { FaMagic } from "react-icons/fa";
-
+import { signIn, signOut, useSession } from "next-auth/react";
 
 interface SubscriberAreaLoginModalProps {
   isOpen: boolean;
@@ -19,7 +18,8 @@ export default function SubscriberAreaLoginModal({
   onClose,
   resendConfirmation
 }: SubscriberAreaLoginModalProps) {
-  const router = useRouter();
+  // const router = useRouter();
+  const { data: session } = useSession();
   const [accessEmail, setAccessEmail] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -27,68 +27,99 @@ export default function SubscriberAreaLoginModal({
   const [showResetForm, setShowResetForm] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
+  // Clear any existing session when modal opens
+  useEffect(() => {
+    if (isOpen && session) {
+      // Clear lingering session before new login attempt
+      const clearExistingSession = async () => {
+        localStorage.clear();
+        sessionStorage.clear();
+        await signOut({ redirect: false });
+      };
+      clearExistingSession();
+    }
+  }, [isOpen, session]);
+
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(emailToValidate);
   }, []);
 
-  const handleSubscriberAccess = useCallback(async () => {
-    if (!validateEmail(accessEmail)) {
-      toast.error("Por favor, insira um e-mail válido");
-      return;
-    }
+ const handleSubscriberAccess = useCallback(async () => {
+  if (!validateEmail(accessEmail)) {
+    toast.error("Por favor, insira um e-mail válido");
+    return;
+  }
 
-    if (!accessPassword) {
-      toast.error("Por favor, insira sua senha");
-      return;
-    }
+  if (!accessPassword) {
+    toast.error("Por favor, insira sua senha");
+    return;
+  }
 
-    setIsLoading(true);
-    
-    try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-         },
-        body: JSON.stringify({ 
-          email: accessEmail, 
-          password: accessPassword  
-        }),
-      });
+  setIsLoading(true);
+  
+  try {
+    // Step 1: First validate credentials with your API
+    const loginRes = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+      },
+      body: JSON.stringify({ 
+        email: accessEmail, 
+        password: accessPassword  
+      }),
+    });
 
-      if (res.ok) {
-        const data = await res.json();
-        localStorage.setItem('sessionToken', data.token);
-        router.push(`/assinante/${data.userId}`);
-        onClose();
-      } 
-      else if (res.status === 401) {
+    if (!loginRes.ok) {
+      // Handle your specific error cases
+      if (loginRes.status === 401) {
         toast.error("Credenciais inválidas");
-      } 
-      else if (res.status === 403) {
+      } else if (loginRes.status === 403) {
         toast.error("Esse e-mail ainda não foi confirmado", {
           action: {
             label: "Reenviar Confirmação",
             onClick: () => resendConfirmation(accessEmail)
           },
         });
-      } 
-      else if (res.status === 404) {
-        toast.error("E-mail não encontrado. Por favor, verifique ou cadastre-se.");
-      } 
-      else {
-        const errorData = await res.json();
-        toast.error(errorData.message || "Erro ao acessar área do assinante");
+      } else {
+        toast.error("Erro ao fazer login");
       }
-    } catch (error) {
-      console.error('Error:', error);
-      toast.error("Erro ao acessar área do assinante");
-    } finally {
-      setIsLoading(false);
+      return;
     }
-  }, [accessEmail, accessPassword, router, resendConfirmation, onClose, validateEmail]);
+
+    // Get the user data from your API
+    const userData = await loginRes.json();
+    const userId = userData.userId;
+
+    // Step 2: Create NextAuth session
+    const signInResult = await signIn('credentials', {
+      email: accessEmail,
+      password: accessPassword,
+      redirect: false,
+    });
+
+    if (signInResult?.ok) {
+      // Step 3: Store any additional data you need
+      if (userData.token) {
+        localStorage.setItem('sessionToken', userData.token);
+      }
+      
+      // Step 4: Force navigation (not router.push to avoid cache)
+      toast.success("Login realizado com sucesso!");
+      window.location.href = `/assinante/${userId}`;
+    } else {
+      toast.error("Erro ao criar sessão");
+    }
+    
+  } catch (error) {
+    console.error('Login error:', error);
+    toast.error("Erro ao acessar área do assinante");
+  } finally {
+    setIsLoading(false);
+  }
+}, [accessEmail, accessPassword, resendConfirmation, validateEmail]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
@@ -120,16 +151,31 @@ export default function SubscriberAreaLoginModal({
     }
   }, [resetEmail, validateEmail]);
 
+  // Handle Enter key press
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !showResetForm) {
+      handleSubscriberAccess();
+    } else if (e.key === 'Enter' && showResetForm) {
+      handlePasswordReset();
+    }
+  }, [showResetForm, handleSubscriberAccess, handlePasswordReset]);
+
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+          }}
+        >
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.2 }}
             className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
           >
             {showResetForm ? (
               <>
@@ -143,7 +189,9 @@ export default function SubscriberAreaLoginModal({
                   placeholder="Insira seu e-mail cadastrado"
                   value={resetEmail}
                   onChange={(e) => setResetEmail(e.target.value)}
+                  onKeyPress={handleKeyPress}
                   className="w-full mb-4"
+                  disabled={isLoading}
                 />
                 
                 <div className="flex justify-end gap-3 mt-6">
@@ -178,7 +226,9 @@ export default function SubscriberAreaLoginModal({
                     placeholder="Insira seu e-mail cadastrado"
                     value={accessEmail}
                     onChange={(e) => setAccessEmail(e.target.value)}
+                    onKeyPress={handleKeyPress}
                     className="w-full"
+                    disabled={isLoading}
                   />
                   <div className="relative w-full">
                     <Input
@@ -186,26 +236,28 @@ export default function SubscriberAreaLoginModal({
                       placeholder="Insira sua senha"
                       value={accessPassword}
                       onChange={(e) => setAccessPassword(e.target.value)}
+                      onKeyPress={handleKeyPress}
                       className="w-full pr-10"
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(prev => !prev)}
                       className="absolute inset-y-0 right-3 flex items-center text-gray-500 hover:text-gray-700"
+                      tabIndex={-1}
                     >
                       {showPassword ? <FaEyeSlash /> : <FaEye />}
                     </button>
                   </div>
-                  
-                  
                 </div>
                 
-                <div className="flex justify-center  mt-6">
-                   <Button 
+                <div className="flex justify-center mt-6">
+                  <Button 
                     variant="ghost" 
                     size="sm"
                     onClick={() => setShowResetForm(true)}
                     className="text-[12px] mt-2 justify-start w-1/2 text-black hover:text-blue-500 hover:bg-transparent cursor-pointer"
+                    disabled={isLoading}
                   >
                     Esqueceu a sua senha?
                   </Button>
@@ -229,8 +281,6 @@ export default function SubscriberAreaLoginModal({
                     </Button>
                   </div>
                 </div>
-
-               
               </>
             )}
           </motion.div>

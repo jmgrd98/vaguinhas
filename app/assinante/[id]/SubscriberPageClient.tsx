@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { 
   redirect,
-  // useParams,
   useRouter 
 } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -16,8 +15,12 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FaArrowLeft } from "react-icons/fa";
-// import { useProtectedRoute } from "@/utils/auth";
+import { 
+  // FaArrowLeft, 
+  FaSignOutAlt 
+} from "react-icons/fa";
+import { useCompleteLogout } from "@/hooks/useCompleteLogout";
+import { useSession } from "next-auth/react";
 
 interface UserData {
   _id: string;
@@ -37,6 +40,8 @@ export default function SubscriberPageClient({
   subscriberId
 }: SubscriberPageProps) {
   const router = useRouter();
+  const { data: session, status } = useSession();
+  const { logout, isLoggingOut } = useCompleteLogout();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
@@ -44,7 +49,22 @@ export default function SubscriberPageClient({
     seniorityLevel: "",
     stacks: [] as string[],
   });
-  console.log('SUBSCRIBER ID', subscriberId);
+
+  // Prevent browser back button cache
+  useEffect(() => {
+    console.log('SESSION', session);
+    window.history.pushState(null, '', window.location.pathname);
+    
+    const handlePopState = () => {
+      if (status === 'unauthenticated') {
+        router.replace('/');
+      }
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [status, router]);
+
   if (!subscriberId) {
     redirect("/");
   }
@@ -54,7 +74,10 @@ export default function SubscriberPageClient({
       try {
         setLoading(true);
         const res = await fetch(`/api/users/${subscriberId}`, {
-          credentials: 'include'
+          credentials: 'include',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
         });
         
         if (!res.ok) {
@@ -103,7 +126,6 @@ export default function SubscriberPageClient({
     }
   };
 
-  // Only one loading state now
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4">
@@ -121,7 +143,14 @@ export default function SubscriberPageClient({
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">Usuário não encontrado</h1>
-          <Button className="cursor-pointer" onClick={() => router.push("/")}>Voltar para início</Button>
+          <Button 
+            className="cursor-pointer" 
+            onClick={logout}
+            disabled={isLoggingOut}
+          >
+            <FaSignOutAlt className="mr-2" />
+            {isLoggingOut ? "Saindo..." : "Sair"}
+          </Button>
         </div>
       </div>
     );
@@ -133,16 +162,16 @@ export default function SubscriberPageClient({
         <Button
           variant="outline"
           className="absolute left-0 cursor-pointer"
-          onClick={() => router.push("/")}
+          onClick={logout}
+          disabled={isLoggingOut}
         >
-          <FaArrowLeft className="mr-2" /> Voltar
+          <FaSignOutAlt className="mr-2" /> 
+          {isLoggingOut ? "Saindo..." : "Sair"}
         </Button>
         <p className="mx-auto font-caprasimo caprasimo-regular text-5xl text-[#ff914d] font-bold text-center">
           vaguinhas
         </p>
       </div>
-
-
 
       <div className="w-full max-w-2xl bg-white dark:bg-gray-800 rounded-xl shadow-xl p-6 sm:p-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Painel de Assinante</h1>
@@ -169,7 +198,6 @@ export default function SubscriberPageClient({
           <h2 className="text-xl font-bold mb-6">Atualizar Preferências</h2>
 
           <div className="space-y-6">
-            {/* Seniority Level */}
             <div>
               <label className="block text-sm font-medium mb-2">Senioridade</label>
               <Select
@@ -189,7 +217,6 @@ export default function SubscriberPageClient({
               </Select>
             </div>
 
-            {/* Single Stack Select */}
             <div>
               <label className="block text-sm font-medium mb-2">Área</label>
               <Select
@@ -208,7 +235,6 @@ export default function SubscriberPageClient({
                     'backend',
                     'mobile',
                     'fullstack',
-                    // 'devops',
                     'dados',
                     'design'
                   ].map(area => (

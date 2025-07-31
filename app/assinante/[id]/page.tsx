@@ -9,6 +9,7 @@ export default async function SubscriberPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
   console.log('SESSION', session);
   console.log('PARAMS', params);
+  
   if (!session) {
     redirect("/");
   }
