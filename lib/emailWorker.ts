@@ -3,7 +3,8 @@ import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { 
   sendFeedbackEmail,
-  sendConfirmEmailReminder
+  sendConfirmEmailReminder,
+  sendNewUpdateEmail
  } from './email';
 
 // Load environment variables FIRST
@@ -44,6 +45,10 @@ const worker = new Worker('emailQueue', async (job) => {
       
     case 'confirm-reminder':
       await sendConfirmEmailReminder(job.data.email, job.data.token);
+      break;
+
+    case 'new-update':
+      await sendNewUpdateEmail(job.data.email);
       break;
       
     default:
