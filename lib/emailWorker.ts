@@ -4,15 +4,13 @@ import IORedis from 'ioredis';
 import { 
   sendFeedbackEmail,
   sendConfirmEmailReminder,
-  sendNewUpdateEmail
+  sendNewUpdateEmail,
+  sendFavouriteOnGithubEmail,
+  sendSupportUsEmail
  } from './email';
 
 // Load environment variables FIRST
 config({ path: '.env' });
-
-console.log("✅ Environment variables loaded:");
-console.log(`- SMTP_HOST: ${process.env.SMTP_HOST}`);
-console.log(`- REDIS_URL: ${process.env.REDIS_URL?.substring(0, 30)}...`);
 
 function createRedisConnection() {
   if (!process.env.REDIS_URL) {
@@ -32,13 +30,13 @@ const worker = new Worker('emailQueue', async (job) => {
     console.log(`📨 Processing job ${job.id} [${job.name}]`);
     
     // Validate job type exists
-    if (!job.data.jobType) {
-      throw new Error(`Job ${job.id} missing jobType property`);
-    }
+    // if (!job.data.jobType) {
+    //   throw new Error(`Job ${job.id} missing jobType property`);
+    // }
     console.log('JOB NAME', job.name);
     console.log('JOB TYPE', job.data.jobType);
    // In worker, change to:
-  switch (job.data.jobType) {  // Use job.name instead of job.data.jobType
+  switch (job.name) {  // Use job.name instead of job.data.jobType
     case 'feedback-email':
       await sendFeedbackEmail(job.data.email);
       break;
@@ -50,6 +48,17 @@ const worker = new Worker('emailQueue', async (job) => {
     case 'new-update':
       await sendNewUpdateEmail(job.data.email);
       break;
+
+    case 'favourite-on-github':
+      await sendFavouriteOnGithubEmail(job.data.email);
+      break;
+
+    case 'support-us':
+      await sendSupportUsEmail(job.data.email);
+      break;
+    
+    
+    
       
     default:
       throw new Error(`Unknown job type: ${job.name}`);

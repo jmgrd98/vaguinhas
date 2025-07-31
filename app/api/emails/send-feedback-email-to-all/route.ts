@@ -60,7 +60,7 @@ export async function GET(req: Request) {
     console.log(`Randomized ${randomizedEmails.length} email recipients`);
     console.log('Emails:', randomizedEmails);
 
-      let queue;
+    let queue;
     try {
       queue = getEmailQueue();
     } catch (error) {
@@ -72,10 +72,11 @@ export async function GET(req: Request) {
     }
     
     const jobs = randomizedEmails.map(email => ({
-      name: `feedback-${Date.now()}-${email}`,
+      name: `feedback-email`,
       data: { 
         email,
-        jobType: 'feedback-email'  // Add this
+        // name: 'feedback-email',
+        // jobType: 'feedback-email'  // Add this
       },
     }));
     await queue.addBulk(jobs);
