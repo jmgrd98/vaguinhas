@@ -21,5 +21,13 @@ export default async function SubscriberPage({ params }: PageProps) {
     redirect("/unauthorized"); // or back to home
   }
 
-  return <SubscriberPageClient subscriberId={userId} />;
+  return (
+    <>
+      <SubscriberPageClient subscriberId={userId} />
+      <div className="hidden">
+        {/* Force session cookies to be set */}
+        <p>Session Token: {session?.user?.id}</p>
+      </div>
+    </>
+  );
 }

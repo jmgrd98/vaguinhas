@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-// import { useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -18,7 +18,7 @@ export default function SubscriberAreaLoginModal({
   onClose,
   resendConfirmation
 }: SubscriberAreaLoginModalProps) {
-  // const router = useRouter();
+  const router = useRouter();
   const { data: session } = useSession();
   const [accessEmail, setAccessEmail] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
@@ -97,20 +97,27 @@ export default function SubscriberAreaLoginModal({
     const signInResult = await signIn('credentials', {
       email: accessEmail,
       password: accessPassword,
-      redirect: false,
+      redirect: true,  // Change to true
+      callbackUrl: `/assinante/${userId}` // Specify where to go
     });
-
     if (signInResult?.ok) {
-      // Step 3: Store any additional data you need
       if (userData.token) {
         localStorage.setItem('sessionToken', userData.token);
       }
       
-      // Step 4: Force navigation (not router.push to avoid cache)
       toast.success("Login realizado com sucesso!");
-      window.location.href = `/assinante/${userId}`;
-    } else {
-      toast.error("Erro ao criar sessão");
+      
+      // Check for callbackUrl in the URL params
+      const urlParams = new URLSearchParams(window.location.search);
+      const callbackUrl = urlParams.get('callbackUrl');
+      
+      // Use callbackUrl if it exists, otherwise go to subscriber page
+      const redirectUrl = callbackUrl || `/assinante/${userId}`;
+      
+      // Use router.push with a small delay
+      setTimeout(() => {
+        router.push(redirectUrl);
+      }, 100);
     }
     
   } catch (error) {
@@ -119,7 +126,7 @@ export default function SubscriberAreaLoginModal({
   } finally {
     setIsLoading(false);
   }
-}, [accessEmail, accessPassword, resendConfirmation, validateEmail]);
+}, [accessEmail, accessPassword, resendConfirmation, validateEmail, router]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
