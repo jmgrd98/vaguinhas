@@ -2,7 +2,8 @@
   "name": "email-worker",
   "version": "1.0.0",
   "scripts": {
-    "prebuild": "npm install && tsc-alias",
+    "build:emails": "tsc -p tsconfig.emails.json",
+    "prebuild": "npm install && tsc-alias npm run build:emails",
     "build": "tsc --project tsconfig.json",
     "start": "node dist/worker/src/index.js"
   },
@@ -18,8 +19,10 @@
   },
   "devDependencies": {
     "@types/node": "^24.2.0",
+    "@types/nodemailer": "6.4.17",
     "@types/react": "^19.1.9",
-    "@types/react-email": "^3.1.7",
+    "@types/react-dom": "19.1.7",
+    "ts-node": "10.9.2",
     "typescript": "^5.0.0"
   },
   "resolutions": {

@@ -8,7 +8,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "jsx": "react-jsx",  // Essential for JSX
+    "jsx": "preserve",  // Essential for JSX
     "types": ["node"],
     "typeRoots": [
       "./node_modules/@types",
@@ -16,12 +16,9 @@
     ],
     "baseUrl": ".",
     "paths": {
-      "@/emails/*": ["../../emails/*"]
+      "@/emails/*": ["./dist/emails/*"]
     }
   },
-  "include": [
-    "src/**/*",
-    "../../emails/**/*"
-  ],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "**/*.tsx"]
 }
