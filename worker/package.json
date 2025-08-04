@@ -19,6 +19,7 @@
   "devDependencies": {
     "@types/node": "^24.2.0",
     "@types/react": "^19.1.9",
+    "@types/react-email": "^3.1.7",
     "typescript": "^5.0.0"
   },
   "resolutions": {
