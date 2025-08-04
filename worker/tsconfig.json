@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "moduleResolution": "node",
+    "types": ["node"],
+    "jsx": "react-jsx",  // Essential for JSX
+    "baseUrl": ".",       // Helps with path resolution
+    "paths": {
+      "@/emails/*": ["../../emails/*"]  // Path alias for emails
+    }
+  },
+  "include": [
+    "src/**/*",
+    "../../emails/**/*"  // Include external email templates
+  ],
+  "exclude": ["node_modules", "dist"]
+}

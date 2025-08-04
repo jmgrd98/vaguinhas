@@ -14,6 +14,10 @@
 # testing
 /coverage
 
+# worker
+/worker/dist
+/worker/node_modules
+
 # next.js
 /.next/
 /out/

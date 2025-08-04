@@ -1,0 +1,42 @@
+name: Deploy Applications
+on:
+  push:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      web: ${{ steps.filter.outputs.web }}
+      workers: ${{ steps.filter.outputs.workers }}
+    steps:
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            web:
+              - 'apps/web/**'
+              - 'packages/**'
+            workers:
+              - 'apps/workers/**'
+              - 'packages/**'
+
+  deploy-vercel:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Vercel
+        run: vercel deploy --prod
+
+  deploy-render:
+    needs: changes
+    if: needs.changes.outputs.workers == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Render
+        run: |
+          curl -X POST https://api.render.com/v1/services/$SERVICE_ID/deploys \
+            -H "Authorization: Bearer $RENDER_API_KEY"
