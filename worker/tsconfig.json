@@ -8,16 +8,20 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "types": ["node"],
     "jsx": "react-jsx",  // Essential for JSX
-    "baseUrl": ".",       // Helps with path resolution
+    "types": ["node"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../node_modules/@types"  // Reference parent node_modules
+    ],
+    "baseUrl": ".",
     "paths": {
-      "@/emails/*": ["../../emails/*"]  // Path alias for emails
+      "@/emails/*": ["../../emails/*"]
     }
   },
   "include": [
     "src/**/*",
-    "../../emails/**/*"  // Include external email templates
+    "../../emails/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }
