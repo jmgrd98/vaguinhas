@@ -1,23 +1,28 @@
-import path from 'path';
 import { render } from '@react-email/render';
+import path from 'path';
+import { createRequire } from 'module';
 
-// Helper function to load compiled email components
-async function loadEmailComponent(templateName: string) {
-  try {
-    const modulePath = path.resolve(__dirname, `../emails/${templateName}.js`);
-    const templateModule = await import(modulePath);
-    return templateModule.default || templateModule;
-  } catch (error) {
-    throw new Error(`Failed to load email template: ${templateName}. ${error}`);
-  }
-}
+const dynamicRequire = createRequire(import.meta.url);
 
 export async function getEmailComponent(templateName: string, data: any): Promise<string> {
-  const TemplateComponent = await loadEmailComponent(templateName);
+  // 1. Resolve the template path
+  const templatePath = path.resolve(__dirname, `../../emails/${templateName}.tsx`);
   
-  if (!TemplateComponent) {
-    throw new Error(`Email template not found: ${templateName}`);
+  try {
+    // 2. Dynamically import the template
+     const templateModule = dynamicRequire(templatePath);
+    
+    // 3. Extract the default export
+    const TemplateComponent = templateModule.default;
+    
+    if (typeof TemplateComponent !== 'function') {
+      throw new Error(`Template ${templateName} default export is not a React component`);
+    }
+    
+    // 4. Render to HTML
+    return render(TemplateComponent(data));
+  } catch (error) {
+    console.error(`Error rendering template ${templateName}:`, error);
+    throw new Error(`Failed to render email template: ${templateName}`);
   }
-
-  return render(TemplateComponent(data));
 }

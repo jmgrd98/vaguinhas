@@ -3,17 +3,17 @@ import { createTransport } from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import SupportUsEmail from '../emails/support-us';
+import SupportUsEmail from './emails/support-us';
 import { render } from '@react-email/render';
-import FeedbackEmail from '../emails/feedback';
-import ProblemsEmail from '../emails/problems';
-import NewUpdateEmail from '../emails/new-update';
-import { PasswordResetEmail } from '../emails/password-reset';
-import ConfirmationEmail from '../emails/confirmation';
+import FeedbackEmail from './emails/feedback';
+import ProblemsEmail from './emails/problems';
+import NewUpdateEmail from './emails/new-update';
+import { PasswordResetEmail } from './emails/password-reset';
+import ConfirmationEmail from './emails/confirmation';
 // import qrCode from '../public/qrcode-pix.png';
-import FavoriteGithubEmail from '../emails/favourite-on-github';
-import AdminNotificationEmail from '../emails/admin-notification';
-import ConfirmEmailReminder from '../emails/confirm-email-reminder';
+import FavoriteGithubEmail from './emails/favourite-on-github';
+import AdminNotificationEmail from './emails/admin-notification';
+import ConfirmEmailReminder from './emails/confirm-email-reminder';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
 

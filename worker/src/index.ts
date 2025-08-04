@@ -1,5 +1,5 @@
 import { config } from 'dotenv';
-import { Worker } from 'bullmq';
+import { Worker, Job } from 'bullmq'; // Import Job type
 import IORedis from 'ioredis';
 import { 
   sendFeedbackEmail,
@@ -7,13 +7,28 @@ import {
   sendNewUpdateEmail,
   sendFavouriteOnGithubEmail,
   sendSupportUsEmail
- } from '../../lib/email';
+ } from './email';
 
 // Load environment variables FIRST
 config({ path: '.env' });
 
-function createRedisConnection() {
+// Define job data types
+interface FeedbackEmailJobData {
+  email: string;
+}
 
+interface ConfirmReminderJobData {
+  email: string;
+  token: string;
+}
+
+interface GenericEmailJobData {
+  email: string;
+}
+
+type EmailJobData = FeedbackEmailJobData | ConfirmReminderJobData | GenericEmailJobData;
+
+function createRedisConnection() {
   if (!process.env.REDIS_URL) {
     throw new Error('REDIS_URL is not defined');
   }
@@ -26,44 +41,38 @@ function createRedisConnection() {
 }
 
 console.log('👷 Starting email worker...');
-const worker = new Worker('emailQueue', async (job) => {
+const worker = new Worker('emailQueue', async (job: Job<EmailJobData>) => {
   try {
     console.log(`📨 Processing job ${job.id} [${job.name}]`);
     
-    // Validate job type exists
-    // if (!job.data.jobType) {
-    //   throw new Error(`Job ${job.id} missing jobType property`);
-    // }
     console.log('JOB NAME', job.name);
-    console.log('JOB TYPE', job.data.jobType);
-   // In worker, change to:
-  switch (job.name) {  // Use job.name instead of job.data.jobType
-    case 'feedback-email':
-      await sendFeedbackEmail(job.data.email);
-      break;
+    console.log('JOB DATA', job.data);
+    
+    switch (job.name) {
+      case 'feedback-email':
+        await sendFeedbackEmail((job.data as FeedbackEmailJobData).email);
+        break;
+        
+      case 'confirm-reminder':
+        const confirmData = job.data as ConfirmReminderJobData;
+        await sendConfirmEmailReminder(confirmData.email, confirmData.token);
+        break;
+
+      case 'new-update':
+        await sendNewUpdateEmail((job.data as GenericEmailJobData).email);
+        break;
+
+      case 'favourite-on-github':
+        await sendFavouriteOnGithubEmail((job.data as GenericEmailJobData).email);
+        break;
+
+      case 'support-us':
+        await sendSupportUsEmail((job.data as GenericEmailJobData).email);
+        break;
       
-    case 'confirm-reminder':
-      await sendConfirmEmailReminder(job.data.email, job.data.token);
-      break;
-
-    case 'new-update':
-      await sendNewUpdateEmail(job.data.email);
-      break;
-
-    case 'favourite-on-github':
-      await sendFavouriteOnGithubEmail(job.data.email);
-      break;
-
-    case 'support-us':
-      await sendSupportUsEmail(job.data.email);
-      break;
-    
-    
-    
-      
-    default:
-      throw new Error(`Unknown job type: ${job.name}`);
-  }
+      default:
+        throw new Error(`Unknown job type: ${job.name}`);
+    }
     
     console.log(`✅ Completed job ${job.id}`);
     return { status: 'success' };
@@ -76,13 +85,18 @@ const worker = new Worker('emailQueue', async (job) => {
   concurrency: 10,
 });
 
-// Event handlers
+// Event handlers with proper typing
 worker.on('ready', () => console.log('✅ Worker ready'));
-worker.on('active', (job) => console.log(`🔨 Job ${job.id} started`));
-worker.on('completed', (job) => console.log(`🏆 Job ${job.id} completed`));
-worker.on('failed', (job, err) => 
-  console.error(`💥 Job ${job?.id} failed:`, err.message));
-worker.on('error', (err) => console.error('🚨 Worker error:', err));
+worker.on('active', (job: Job) => console.log(`🔨 Job ${job.id} started`));
+worker.on('completed', (job: Job) => console.log(`🏆 Job ${job.id} completed`));
+worker.on('failed', (job: Job | undefined, err: Error) => {
+  if (job) {
+    console.error(`💥 Job ${job.id} failed:`, err.message);
+  } else {
+    console.error('💥 Job failed:', err.message);
+  }
+});
+worker.on('error', (err: Error) => console.error('🚨 Worker error:', err));
 
 // Graceful shutdown
 process.on('SIGINT', () => shutdown('SIGINT'));
@@ -94,8 +108,9 @@ async function shutdown(signal: string) {
     await worker.close();
     console.log('👋 Worker closed gracefully');
     process.exit(0);
-  } catch (err) {
-    console.error('❌ Error closing worker:', err);
+  } catch (err: unknown) {
+    const error = err as Error;
+    console.error('❌ Error closing worker:', error.message);
     process.exit(1);
   }
 }

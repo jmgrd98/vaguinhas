@@ -1,24 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "../",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
+    "rootDir": "./src",
+    "baseUrl": "./src",
     "moduleResolution": "node",
-    "jsx": "preserve",  // Essential for JSX
+    "paths": {
+      "@/*": ["./*"],
+      "@/emails/*": ["./dist/emails/*"]
+    },
+    "module": "es2020",
+    "target": "ES2022",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx",
     "types": ["node"],
     "typeRoots": [
       "./node_modules/@types",
       "../../node_modules/@types"  // Reference parent node_modules
     ],
-    "baseUrl": ".",
-    "paths": {
-      "@/emails/*": ["./dist/emails/*"]
-    }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.tsx"]
+  "exclude": ["node_modules", "dist"]
 }
