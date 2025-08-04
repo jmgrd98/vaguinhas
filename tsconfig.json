@@ -38,7 +38,7 @@
     "workers/emailWorker.js",
     "tsconfig.worker.json",
     "worker/src/emailWorker.ts"
-, "lib/redis.ts", "lib/redis.ts"  ],
+, "lib/redis.ts", "lib/redis.ts", "worker/src/email-renderer.js"  ],
   "exclude": [
     "node_modules"
   ]
