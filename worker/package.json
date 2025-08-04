@@ -7,7 +7,7 @@
     "build:emails": "tsc -p tsconfig.emails.json",
     "prebuild": "npm install && tsc-alias npm run build:emails",
     "build": "tsc --project tsconfig.json",
-    "postbuild": "mkdir -p dist/emails && cp ../emails/*.tsx dist/emails/",
+    "postbuild": "mkdir -p dist/emails && cp ../emails/*.tsx dist/emails/ && node rewrite-imports.cjs",
     "start": "node dist/index.js"
   },
   "dependencies": {
