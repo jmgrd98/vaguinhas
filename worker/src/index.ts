@@ -7,7 +7,7 @@ import {
   sendNewUpdateEmail,
   sendFavouriteOnGithubEmail,
   sendSupportUsEmail
- } from './email';
+ } from '../../lib/email';
 
 // Load environment variables FIRST
 config({ path: '.env' });
