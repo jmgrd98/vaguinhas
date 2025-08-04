@@ -28,12 +28,10 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-// import { signIn, useSession } from "next-auth/react";
-
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
-// Custom hooks
+// Custom hooks (keep these as they are)
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 0,
@@ -84,7 +82,6 @@ const useCooldown = (initialCooldown = 0) => {
 };
 
 export default function Home() {
-
   const windowSize = useWindowSize();
   const { cooldown, setCooldown, canResend, setCanResend } = useCooldown(0);
   
@@ -96,16 +93,11 @@ export default function Home() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  // const [showSelectionError, setShowSelectionError] = useState(false);
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // const { data: session } = useSession();
-
-  // if (status === "loading") return <p>Loading…</p>;
 
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
@@ -244,18 +236,6 @@ export default function Home() {
         Insira seu e-mail para receber vaguinhas em tecnologia todos os dias na sua caixa de entrada! 😊
       </p>
 
-       {/* {!session && (
-        <Button className="cursor-pointer" onClick={() => handleGoogleSignIn()}>
-          <FaGoogle className="mr-2" /> Sign in with Google
-        </Button>
-      )} */}
-
-      {/* {showSelectionError && (
-        <p className="text-red-500 text-sm w-full text-center">
-          Por favor, selecione sua área e nível profissional primeiro.
-        </p>
-      )} */}
-
       <Input
         ref={inputRef}
         type="email"
@@ -277,7 +257,6 @@ export default function Home() {
             'backend',
             'fullstack',
             'mobile',
-            // 'devops',
             'dados',
             'design'
           ].map(area => (
@@ -312,27 +291,6 @@ export default function Home() {
       </Button>
     </div>
   );
-
-  //  const handleGoogleSignIn = useCallback(() => {
-  //     if (!stack || !seniorityLevel) {
-  //       setShowSelectionError(true);
-  //       return;
-  //     }
-  //     setShowSelectionError(false);
-
-  //     // build an *absolute* callback URL INCLUDING your two params
-  //     const cb = `${window.location.origin}/auth/callback`
-  //             + `?stack=${encodeURIComponent(stack)}`
-  //             + `&seniorityLevel=${encodeURIComponent(seniorityLevel)}`;
-
-  //     // tell NextAuth exactly where to redirect after OAuth
-  //     signIn("google", { callbackUrl: cb, redirect: false })
-  //       .then((response) => {
-  //         if (response?.url) window.location.href = response.url;
-  //       });
-  //   }, [stack, seniorityLevel]);
-
-
 
   return (
     <div className="min-h-screen w-full flex flex-col relative px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -386,7 +344,6 @@ export default function Home() {
             <AlertDescription>Falha ao salvar. Tente novamente.</AlertDescription>
           </Alert>
         )}
-        {/* {status === "success" && renderSuccessAlert()} */}
       </main>
 
       <footer className="py-4 sm:py-6 w-full text-center border-t border-gray-200 dark:border-gray-700">

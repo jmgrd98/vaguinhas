@@ -58,7 +58,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       { 
         userId: user._id.toString(),
-        token: sessionToken 
+        token: sessionToken,
+        email: user.email
       },
       { status: 200 }
     );

@@ -3,6 +3,7 @@
 import { Session } from "next-auth";
 import { SessionProvider } from "next-auth/react";
 import { Toaster } from "@/components/ui/sonner";
+import { useLogoutSync } from "@/hooks/useLogoutSync";
 
 export default function Providers({
   children,
@@ -11,6 +12,7 @@ export default function Providers({
   children: React.ReactNode;
   session: Session | null;
 }) {
+  useLogoutSync();
   return (
     <SessionProvider session={session}>
       {children}
