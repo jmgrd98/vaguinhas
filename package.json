@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "dev:email": "email dev",
-    "worker": "tsx lib/emailWorker.ts"
+    "worker": "tsx lib/emailWorker.ts",
+    "postinstall": "cd worker && npm install"
   },
   "dependencies": {
     "@babel/preset-env": "^7.28.0",
@@ -83,5 +84,8 @@
     "tsx": "^4.20.3",
     "tw-animate-css": "^1.3.0",
     "typescript": "^5"
+  },
+  "resolutions": {
+    "next": "15.3.2"
   }
 }
