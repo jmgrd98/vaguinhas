@@ -363,25 +363,3 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 
   return getTransporter().sendMail(mailOptions);
 }
-
-export async function sendMagicLinkEmail(email: string, token: string) {
-  const magicLink = `${process.env.NEXTAUTH_URL}/verify-magic-link?token=${token}`;
-  const html = await render(
-    <MagicLinkEmail
-      magicLink={magicLink}
-      currentYear={new Date().getFullYear().toString()}
-    />
-  )
-  if (!LOGO_BASE64) {
-    throw new Error("VAGUINHAS_LOGO is not defined");
-  }
-
-  const mailOptions = {
-    ...baseMailOptions,
-    to: email,
-    subject: "Acesse sua conta 🧡",
-    html,
-  };
-
-  return transporter.sendMail(mailOptions);
-}
