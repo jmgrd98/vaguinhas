@@ -4,7 +4,7 @@
   "scripts": {
     "prebuild": "npm install && tsc-alias",
     "build": "tsc --project tsconfig.json",
-    "start": "node dist/index.js"
+    "start": "node dist/worker/src/index.js"
   },
   "dependencies": {
     "@react-email/components": "0.4.0",
