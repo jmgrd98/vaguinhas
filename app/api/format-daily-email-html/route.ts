@@ -86,7 +86,7 @@ function generateEmailTemplateTop(email: string) {
       margin: 1.5rem 0;
     }
     
-    .job-content .apply-button, .hired-button {
+    .job-content .apply-button, .hired-button, .feedback-button {
       display: inline-block;
       padding: 10px 16px;
       background-color: #1a73e8;
@@ -124,17 +124,16 @@ function generateEmailTemplateTop(email: string) {
 
     .top-buttons-container {
         display: flex;
+        align-items: center;
         justify-content: space-between;
         padding: 20px 20px 0;
       }
 
       .feedback-button {
         display: inline-block;
-        padding: 10px 16px;
         background-color: #6c63ff;
         color: #ffffff;
         text-decoration: none;
-        border-radius: 4px;
         font-weight: bold;
       }
       
