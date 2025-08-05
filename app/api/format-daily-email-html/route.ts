@@ -123,11 +123,10 @@ function generateEmailTemplateTop(email: string) {
     }
 
     .top-buttons-container {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 20px 20px 0;
-      }
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
 
       .feedback-button {
         display: inline-block;
