@@ -1,49 +1,9 @@
 import { NextResponse } from "next/server";
-import { sendNewUpdateEmail } from "@/lib/email";
-import { getSubscribersWithoutStacks } from "@/lib/mongodb"; // Corrected import
-import { LRUCache } from "lru-cache";
+import { getSubscribersWithoutStacks } from "@/lib/mongodb";
+import { getEmailQueue } from "@/lib/emailQueue";
+import isRateLimited from "@/utils/isRateLimited";
+import shuffleArray from "@/utils/shuffleArray";
 
-// Initialize rate limiter only in production
-const rateLimitCache = process.env.NODE_ENV === "production" 
-  ? new LRUCache<string, number[]>({
-      max: 100,
-      ttl: 30 * 60 * 1000, // 30 minutes
-    })
-  : null;
-
-function isRateLimited(token: string, limit = 5) {
-  // Bypass rate limiting in non-production environments
-  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
-  
-  const tokenCount = rateLimitCache.get(token) || [0];
-  if (tokenCount[0] >= limit) return true;
-  
-  rateLimitCache.set(token, [tokenCount[0] + 1]);
-  return false;
-}
-
-/**
- * Fisher-Yates shuffle algorithm to randomize array in-place
- */
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]; // Create a copy to avoid mutating original
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-async function throttleEmails(emails: string[], sendFn: (email: string) => Promise<unknown>, delay = 2000) {
-  for (const email of emails) {
-    try {
-      await sendFn(email);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    } catch (error) {
-      console.error(`Failed to send to ${email}:`, error);
-    }
-  }
-}
 
 export async function GET(req: Request) {
   // Authentication
@@ -78,15 +38,31 @@ export async function GET(req: Request) {
     const randomizedEmails = shuffleArray(emails);
     console.log(`Randomized ${randomizedEmails.length} email recipients`);
 
-    await throttleEmails(randomizedEmails, sendNewUpdateEmail, 1500);
-
-    return NextResponse.json(
-      { 
-        message: `Emails queued for ${randomizedEmails.length} recipients`,
-        emailsSent: randomizedEmails.length
-      },
-      { status: 200 }
-    );
+     let queue;
+       try {
+         queue = getEmailQueue();
+       } catch (error) {
+         console.error("Queue initialization failed:", error);
+         return NextResponse.json(
+           { error: "Email queue initialization error" },
+           { status: 500 }
+         );
+       }
+       
+       const jobs = randomizedEmails.map(email => ({
+         name: `new-update-email-${email}`,
+         data: { 
+           email,
+           jobType: 'new-update'  // Add this
+         },
+       }));
+       await queue.addBulk(jobs);
+   
+       return NextResponse.json({
+         message: `${jobs.length} emails queued for delivery`,
+         recipients: randomizedEmails.length,
+         // jobType: 'feedback-email',
+       });
   } catch (error) {
     console.error("Email sending failed:", error);
     return NextResponse.json(

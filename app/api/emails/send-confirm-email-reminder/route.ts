@@ -1,26 +1,9 @@
 import { NextResponse } from 'next/server';
 import { connectToDatabase } from '@/lib/mongodb';
-import { sendConfirmEmailReminder } from '@/lib/email';
+// import { sendConfirmEmailReminder } from '@/lib/email';
 import generateConfirmationToken from '@/lib/generateConfirmationToken';
-import { LRUCache } from "lru-cache";
-
-const rateLimitCache = process.env.NODE_ENV === "production" 
-  ? new LRUCache<string, number[]>({
-      max: 100,
-      ttl: 30 * 60 * 1000, // 30 minutes
-    })
-  : null;
-
-function isRateLimited(token: string, limit = 5) {
-  // Bypass rate limiting in non-production environments
-  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
-  
-  const tokenCount = rateLimitCache.get(token) || [0];
-  if (tokenCount[0] >= limit) return true;
-  
-  rateLimitCache.set(token, [tokenCount[0] + 1]);
-  return false;
-}
+import isRateLimited from '@/utils/isRateLimited';
+import { getEmailQueue } from '@/lib/emailQueue'; // Import queue
 
 
 export async function GET(req: Request) {
@@ -78,8 +61,19 @@ export async function GET(req: Request) {
           continue;
         }
         
-        // Send email with exponential backoff
-        await sendConfirmEmailReminder(user.email, newToken);
+          await getEmailQueue().add(
+          `confirm-reminder`, // Job name
+          {
+            jobType: "confirm-reminder",
+            email: user.email,
+            token: newToken
+          },
+          {
+            attempts: 3,
+            backoff: { type: "exponential", delay: 1000 }
+          }
+        );
+        
         processed++;
       } catch (error) {
         console.error(`Failed to process user ${user.email}:`, error);

@@ -1,59 +1,9 @@
 import { NextResponse } from "next/server";
-import { sendFavouriteOnGithubEmail } from "@/lib/email";
 import { getAllSubscribers } from "@/lib/mongodb";
-import sendBatchEmails from "@/lib/sendBatchEmails";
-import { LRUCache } from "lru-cache";
-
-// Initialize rate limiter only in production
-const rateLimitCache =
-  process.env.NODE_ENV === "production"
-    ? new LRUCache<string, number[]>({
-        max: 100,
-        ttl: 30 * 60 * 1000, // 30 minutes
-      })
-    : null;
-
-/**
- * Return true if this token has hit the rate-limit.
- * Only enforced in production.
- */
-function isRateLimited(token: string, limit = 5) {
-  if (!rateLimitCache || process.env.NODE_ENV !== "production") return false;
-
-  const tokenCount = rateLimitCache.get(token) || [0];
-  if (tokenCount[0] >= limit) return true;
-
-  rateLimitCache.set(token, [tokenCount[0] + 1]);
-  return false;
-}
-
-/**
- * Validate incoming bearer token against:
- *  - CRON_SECRET (injected by Vercel on every cron call)
- *  - JWT_SECRET  (for any manual calls you might do)
- */
-function isAuthorized(req: Request) {
-  const auth = req.headers.get("authorization") || "";
-  const token = auth.split(" ")[1] || "";
-  const { CRON_SECRET, JWT_SECRET } = process.env;
-
-  return (
-    (CRON_SECRET && token === CRON_SECRET) ||
-    (JWT_SECRET && token === JWT_SECRET)
-  );
-}
-
-/**
- * Fisher-Yates shuffle algorithm to randomize array in-place
- */
-function shuffleArray<T>(array: T[]): T[] {
-  const shuffled = [...array]; // Create a copy to avoid mutating original
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
+import { getEmailQueue } from "@/lib/emailQueue";
+import isAuthorized from "@/utils/isAuthorized";
+import isRateLimited from "@/utils/isRateLimited";
+import shuffleArray from "@/utils/shuffleArray";
 
 export async function GET(req: Request) {
   // 1) Authenticate
@@ -102,18 +52,32 @@ export async function GET(req: Request) {
     const randomizedEmails = shuffleArray(emails);
     console.log(`Randomized ${randomizedEmails.length} email recipients`);
     console.log('Emails:', randomizedEmails);
-
-    // 5) Send in batches
-    console.log(`Starting email sending to ${randomizedEmails.length} recipients`);
-    await sendBatchEmails(randomizedEmails, sendFavouriteOnGithubEmail, 10);
-
-    return NextResponse.json(
-      {
-        message: `Emails sent to ${randomizedEmails.length} recipients`,
-        recipients: randomizedEmails.length,
+ let queue;
+    try {
+      queue = getEmailQueue();
+    } catch (error) {
+      console.error("Queue initialization failed:", error);
+      return NextResponse.json(
+        { error: "Email queue initialization error" },
+        { status: 500 }
+      );
+    }
+    
+    const jobs = randomizedEmails.map(email => ({
+      name: 'favourite-on-github',
+      data: { 
+        email,
+        // name: 'feedback-email',
+        // jobType: 'feedback-email'  // Add this
       },
-      { status: 200 }
-    );
+    }));
+    await queue.addBulk(jobs);
+
+    return NextResponse.json({
+      message: `${jobs.length} emails queued for delivery`,
+      recipients: randomizedEmails.length,
+      // jobType: 'feedback-email',
+    });
   } catch (error) {
     console.error("Background email processing failed:", error);
     return NextResponse.json(

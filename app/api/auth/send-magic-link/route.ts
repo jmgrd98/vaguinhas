@@ -2,7 +2,7 @@
 import { connectToDatabase } from "@/lib/mongodb";
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { sendMagicLinkEmail } from "@/lib/email";
+// import { sendMagicLinkEmail } from "@/lib/email";
 
 
 export async function POST(req: NextRequest) {
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     });
     
     // Send email with magic link
-    await sendMagicLinkEmail(email, token);
+    // await sendMagicLinkEmail(email, token);
     
     return NextResponse.json({ 
       message: "Link de acesso enviado para seu e-mail!" 

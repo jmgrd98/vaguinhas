@@ -1,21 +1,47 @@
+import React from 'react';
 import { createTransport } from 'nodemailer';
 import fs from 'fs/promises';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import SupportUsEmail from '@/emails/support-us';
+import SupportUsEmail from '../emails/support-us';
 import { render } from '@react-email/render';
-import FeedbackEmail from '@/emails/feedback';
-import ProblemsEmail from '@/emails/problems';
-import NewUpdateEmail from '@/emails/new-update';
-import { PasswordResetEmail } from '@/emails/password-reset';
-import ConfirmationEmail from '@/emails/confirmation';
-// import qrCode from '@/public/qrcode-pix.png';
-import FavoriteGithubEmail from '@/emails/favourite-on-github';
-import AdminNotificationEmail from '@/emails/admin-notification';
-import ConfirmEmailReminder from '@/emails/confirm-email-reminder';
-import MagicLinkEmail from '@/emails/magic-link';
+import FeedbackEmail from '../emails/feedback';
+import ProblemsEmail from '../emails/problems';
+import NewUpdateEmail from '../emails/new-update';
+import { PasswordResetEmail } from '../emails/password-reset';
+import ConfirmationEmail from '../emails/confirmation';
+// import qrCode from '../public/qrcode-pix.png';
+import FavoriteGithubEmail from '../emails/favourite-on-github';
+import AdminNotificationEmail from '../emails/admin-notification';
+import ConfirmEmailReminder from '../emails/confirm-email-reminder';
 
 export const LOGO_BASE64 = process.env.VAGUINHAS_LOGO;
+
+function getLogoAttachment() {
+  if (!process.env.VAGUINHAS_LOGO) {
+    console.warn('⚠️ VAGUINHAS_LOGO is not defined');
+    return [];
+  }
+
+  try {
+    // Handle both data URL and plain base64
+    const base64Data = process.env.VAGUINHAS_LOGO.includes('base64,') 
+      ? process.env.VAGUINHAS_LOGO.split('base64,')[1]
+      : process.env.VAGUINHAS_LOGO;
+
+    return [{
+      filename: 'vaguinhas.png',
+      content: Buffer.from(base64Data, 'base64'),
+      encoding: 'base64',
+      cid: 'logo@vaguinhas'
+    }];
+  } catch (error) {
+    console.error('❌ Error processing VAGUINHAS_LOGO:', error);
+    return [];
+  }
+}
+
+
 
 export interface Job {
   title: string;
@@ -26,35 +52,47 @@ export interface Job {
   seniority?: string[];
 }
 
-const transporter = createTransport({
-  // service: process.env.EMAIL_SERVICE,
-  // auth: {
-  //   user: process.env.EMAIL_USER,
-  //   pass: process.env.EMAIL_PASSWORD,
-  // },
-  host: process.env.SMTP_HOST,
-  port: Number(process.env.SMTP_PORT),
-  secure: process.env.SMTP_SECURE === 'true',
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-  tls: {
-    ciphers: 'SSLv3'
+let transporter: ReturnType<typeof createTransport> | null = null;
+
+function getTransporter() {
+  if (!transporter) {
+    console.log('Creating transporter with:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      user: process.env.SMTP_USER
+    });
+    
+    transporter = createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
   }
-
-});
-
-
-const baseMailOptions = {
-  from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
-  attachments: [{
-      filename: 'vaguinhas.png',
-      content: Buffer.from(LOGO_BASE64!.split('base64,')[1], 'base64'),
-      encoding: 'base64',
-      cid: 'logo@vaguinhas'
-    }],
+  return transporter;
 }
+
+function getBaseMailOptions() {
+  if (!process.env.EMAIL_FROM) {
+    throw new Error('EMAIL_FROM is not defined');
+  }
+  
+  return {
+    from: `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`,
+    attachments: getLogoAttachment()
+  };
+}
+
+
+// const baseMailOptions = {
+//   from: process.env.EMAIL_FROM 
+//     ? `vaguinhas 🧡 <${process.env.EMAIL_FROM}>`
+//     : 'vaguinhas@vaguinhas.com.br',
+//   attachments: getLogoAttachment()
+// }
 
 const baseUrl = process.env.NEXTAUTH_URL;
 
@@ -103,13 +141,13 @@ export async function sendConfirmationEmail(
   }
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: 'Confirme seu e-mail para começar a receber vaguinhas 🧡',
     html,
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 
@@ -128,13 +166,13 @@ export async function sendAdminNotification(email: string) {
   )
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: "jmgrd98@gmail.com",
     subject: "Novo cadastro no vaguinhas",
     html
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export function generateConfirmationToken() {
@@ -152,13 +190,20 @@ export async function sendFeedbackEmail(email: string) {
   );
   
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Nos ajude a melhorar 🧡",
-    html
+    html,
+    attachments: getBaseMailOptions().attachments.length > 0 
+      ? getBaseMailOptions().attachments
+      : [{
+          filename: 'vaguinhas.png',
+          path: path.join(process.cwd(), 'public', 'vaguinhas-logo.png'),
+          cid: 'logo@vaguinhas'
+        }]
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendSupportUsEmail(email: string) {
@@ -199,7 +244,7 @@ export async function sendSupportUsEmail(email: string) {
     ]
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendFavouriteOnGithubEmail(email: string) {
@@ -215,36 +260,45 @@ export async function sendFavouriteOnGithubEmail(email: string) {
   }
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Favorite-nos no Github! 🧡",
     html,
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendConfirmEmailReminder(email: string, token: string) {
-  const confirmationLink = `${baseUrl}/confirm-email?token=${token}`;
+    const currentYear = new Date().getFullYear().toString();
+  
+  // Pre-render email HTML
   const html = await render(
     <ConfirmEmailReminder
-      confirmationLink={confirmationLink}
-      currentYear={new Date().getFullYear().toString()}
+      confirmationLink={`${process.env.NEXTAUTH_URL}/confirm-email?token=${token}`}
+      currentYear={currentYear}
     />
-  )
+  );
 
-  if (!LOGO_BASE64) {
-    throw new Error("VAGUINHAS_LOGO is not defined");
-  }
+  // if (!LOGO_BASE64) {
+  //   throw new Error("VAGUINHAS_LOGO is not defined");
+  // }
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Você esqueceu de confirmar seu e-mail? 🤔",
     html,
+    attachments: getBaseMailOptions().attachments.length > 0 
+      ? getBaseMailOptions().attachments
+      : [{
+          filename: 'vaguinhas.png',
+          path: path.join(process.cwd(), 'public', 'vaguinhas-logo.png'),
+          cid: 'logo@vaguinhas'
+        }]
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendProblemsEmail(email: string) {
@@ -259,13 +313,13 @@ export async function sendProblemsEmail(email: string) {
   );
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Estamos passando por problemas, pedimos a sua compreensão 🧡",
     html, // Usa o HTML renderizado
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendNewUpdateEmail(email: string) {
@@ -280,13 +334,13 @@ export async function sendNewUpdateEmail(email: string) {
   );
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Agora o vaguinhas é ainda mais personalizável! 🧡",
     html, // Usa o HTML renderizado
   };
 
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }
 
 export async function sendPasswordResetEmail(email: string, token: string) {
@@ -301,33 +355,11 @@ export async function sendPasswordResetEmail(email: string, token: string) {
   }
 
   const mailOptions = {
-    ...baseMailOptions,
+    ...getBaseMailOptions(),
     to: email,
     subject: "Redefina sua senha 🧡",
     html,
   };
 
-  return transporter.sendMail(mailOptions);
-}
-
-export async function sendMagicLinkEmail(email: string, token: string) {
-  const magicLink = `${process.env.NEXTAUTH_URL}/verify-magic-link?token=${token}`;
-  const html = await render(
-    <MagicLinkEmail
-      magicLink={magicLink}
-      currentYear={new Date().getFullYear().toString()}
-    />
-  )
-  if (!LOGO_BASE64) {
-    throw new Error("VAGUINHAS_LOGO is not defined");
-  }
-
-  const mailOptions = {
-    ...baseMailOptions,
-    to: email,
-    subject: "Acesse sua conta 🧡",
-    html,
-  };
-
-  return transporter.sendMail(mailOptions);
+  return getTransporter().sendMail(mailOptions);
 }

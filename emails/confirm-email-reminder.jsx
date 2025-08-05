@@ -1,0 +1,94 @@
+import React from 'react';
+import { Html, Head, Preview, Body, Container, Section, Heading, Text, Hr, Img, } from '@react-email/components';
+const ConfirmEmailReminder = ({ confirmationLink, currentYear, useCid = false, }) => {
+    return (<Html>
+      <Head />
+      <Preview>Você esqueceu de confirmar seu e-mail?</Preview>
+      <Body style={mainStyle}>
+        <Container style={containerStyle}>
+          {/* Logo section */}
+          <Section style={logoSectionStyle}>
+            <Img src={useCid ? "cid:logo@vaguinhas" : "https://www.vaguinhas.com.br/vaguinhas-logo.png"} alt="vaguinhas logo" width="200" style={logoStyle}/>
+          </Section>
+
+          {/* Heading */}
+          <Section style={sectionStyle}>
+            <Heading style={headingStyle}>Você esqueceu de confirmar seu e-mail?</Heading>
+            <Text style={textStyle}>
+              Você se inscreveu para receber vaguinhas mas esqueceu de confirmar seu e-mail? 🤔
+            </Text>
+            <Text style={textStyle}>
+              <a href={confirmationLink} style={linkStyle}>
+                Clique aqui
+              </a>{' '}
+              para confirmar seu e-mail para começar a receber vaguinhas de tecnologia! 🚀
+            </Text>
+
+            <Text style={textStyle}>
+              Se você gostou das vaguinhas ou se possui alguma dúvida, sinta-se livre para nos chamar no{' '}
+              <a href="https://linkedin.com/company/vaguinhas" target="_blank" rel="noopener noreferrer" style={linkStyle}>
+                LinkedIn
+              </a>{' '}
+              para levar uma ideia! 😊
+            </Text>
+          </Section>
+
+          {/* Divider and Footer */}
+          <Hr style={hrStyle}/>
+          <Text style={footerStyle}>vaguinhas - {currentYear}</Text>
+        </Container>
+      </Body>
+    </Html>);
+};
+// Styles
+const mainStyle = {
+    backgroundColor: '#ffffff',
+    margin: '0',
+    padding: '0',
+    width: '100%',
+    fontFamily: 'Arial, sans-serif',
+};
+const containerStyle = {
+    maxWidth: '600px',
+    margin: '0 auto',
+    padding: '20px',
+};
+const logoSectionStyle = {
+    padding: '20px 0',
+    textAlign: 'center',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+};
+const logoStyle = {
+    height: 'auto',
+    width: '200px',
+    maxWidth: '100%',
+};
+const sectionStyle = {
+    margin: '0',
+    padding: '0',
+};
+const headingStyle = {
+    color: '#ff914d',
+    fontSize: '24px',
+    marginTop: '0',
+};
+const textStyle = {
+    fontSize: '16px',
+    lineHeight: '1.5',
+};
+const linkStyle = {
+    color: '#ff914d',
+    textDecoration: 'none',
+};
+const hrStyle = {
+    margin: '30px 0',
+    border: 'none',
+    borderTop: '1px solid #e5e7eb',
+};
+const footerStyle = {
+    fontSize: '12px',
+    color: '#6b7280',
+};
+export default ConfirmEmailReminder;

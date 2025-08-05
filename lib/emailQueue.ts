@@ -1,13 +1,24 @@
-// lib/emailQueue.ts
 import { Queue } from "bullmq";
-import IORedis from "ioredis";
+import { getRedisConnection } from "./redis.ts";
 
-const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379');
+// Use a singleton pattern with lazy initialization
+let emailQueue: Queue | null = null;
 
-export const emailQueue = new Queue("emailQueue", {
-  connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: { type: "exponential", delay: 1000 },
-  },
-});
+export function getEmailQueue(): Queue {
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    throw new Error('BullMQ queues are not compatible with Edge runtime');
+  }
+  
+  if (!emailQueue) {
+    emailQueue = new Queue("emailQueue", {
+      connection: getRedisConnection(),
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 1000 },
+        removeOnComplete: 100,
+        removeOnFail: 100,
+      },
+    });
+  }
+  return emailQueue;
+}

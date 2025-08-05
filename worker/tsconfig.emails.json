@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/emails",
+    "rootDir": "../../emails",
+    "jsx": "react-jsx",
+    "jsxImportSource": "@react-email/components",
+    "allowJs": true,
+    "noEmit": false
+  },
+  "include": ["../../emails/**/*.tsx"]
+}
