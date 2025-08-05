@@ -123,6 +123,7 @@ function generateEmailTemplateTop(email: string) {
     }
 
     .top-buttons-container {
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -182,7 +183,7 @@ function generateEmailTemplateTop(email: string) {
             <td class="top-buttons-container">
               <!-- New Feedback Button -->
               <a href="${baseUrl}/feedback?email=${encodeURIComponent(email)}" target="_blank" class="feedback-button">
-                Deixe-nos sua avaliação
+                Deixe-nos sua avaliação ⭐
               </a>
               
               <!-- Existing Hired Button -->
