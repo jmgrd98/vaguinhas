@@ -149,6 +149,27 @@ function generateEmailTemplateTop(email: string) {
         display: block;
         margin: 0 auto;
       }
+
+      .top-buttons-container {
+        display: flex;
+        justify-content: space-between;
+        padding: 20px 20px 0;
+      }
+
+       .feedback-button {
+        display: inline-block;
+        padding: 10px 16px;
+        background-color: #6c63ff;
+        color: #ffffff;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      
+      .feedback-button:hover {
+        background-color: #564fee;
+        text-decoration: none;
+      }
     }
   </style>
 </head>
@@ -159,9 +180,17 @@ function generateEmailTemplateTop(email: string) {
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
           <!-- Hired button row -->
          
-          <tr>
-            <td class="hired-button-container">
-              <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">Consegui uma vaga! 🎉</a>
+         <tr>
+            <td class="top-buttons-container">
+              <!-- New Feedback Button -->
+              <a href="${baseUrl}/feedback" target="_blank" class="feedback-button">
+                Deixe-nos sua avaliação
+              </a>
+              
+              <!-- Existing Hired Button -->
+              <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">
+                Consegui uma vaga! 🎉
+              </a>
             </td>
           </tr>
        
