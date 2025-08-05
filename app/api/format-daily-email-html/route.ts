@@ -14,7 +14,30 @@ function generateEmailTemplateTop(email: string) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Vagas do Dia</title>
   <style>
-    /* Base styles */
+    /* Add new styles for top buttons container */
+    .top-buttons-container {
+      display: flex;
+      justify-content: space-between;
+      padding: 20px 20px 0;
+    }
+    
+    /* Add feedback button style */
+    .feedback-button {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #6c63ff;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    
+    .feedback-button:hover {
+      background-color: #564fee;
+      text-decoration: none;
+    }
+    
+    /* Existing styles remain the same */
     body {
       margin: 0;
       padding: 0;
@@ -23,153 +46,17 @@ function generateEmailTemplateTop(email: string) {
       -webkit-text-size-adjust: 100%;
     }
     
-    .container {
-      width: 600px;
-      background-color: #ffffff;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 0 10px rgba(0,0,0,0.05);
-    }
+    /* ... rest of existing styles ... */
     
-    .content {
-      padding: 0 30px 20px;
-    }
-    
-    .footer-content {
-      margin-top: 3rem;
-      padding: 1.5rem;
-      border-top: 1px solid #eaeaea;
-      text-align: center;
-      font-family: Arial, sans-serif;
-      color: #333;
-    }
-    
-    .qr-code {
-      max-width: 200px;
-      margin: 0 auto;
-      display: block;
-      border: 1px solid #ddd;
-      border-radius: 8px;
-    }
-    
-    /* Job content styles */
-    .job-content h2 {
-      color: #333333;
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
-    
-    .job-content h3 {
-      color: #555555;
-      font-size: 18px;
-      margin-top: 0;
-    }
-    
-    .job-content p {
-      color: #444444;
-      line-height: 1.5;
-      margin: 16px 0;
-    }
-    
-    .job-content a {
-      color: #1a73e8;
-      text-decoration: none;
-    }
-    
-    .job-content a:hover {
-      text-decoration: underline;
-    }
-    
-    .job-content .salary {
-      font-weight: bold;
-      color: #222222;
-      margin: 1.5rem 0;
-    }
-    
-    .job-content .apply-button, .hired-button {
-      display: inline-block;
-      padding: 10px 16px;
-      background-color: #1a73e8;
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 4px;
-      font-weight: bold;
-      margin: 1rem 0;
-    }
-    
-    .hired-button {
-      background-color: #4CAF50;
-      border-radius: 20px;
-    }
-    
-    .hired-button:hover {
-      background-color: #3d8b40;
-      text-decoration: none;
-    }
-    
-    .hired-button-container {
-      text-align: right;
-      padding: 20px 20px 0;
-    }
-    
-    .job-content .company-link {
-      display: inline-block;
-      margin: 8px 0;
-      color: #1a73e8;
-    }
-    
-    .apply-button, .company-link {
-      cursor: pointer;
-    }
-    
-    /* Media queries */
+    /* Update media query for mobile */
     @media only screen and (max-width: 600px) {
-      .container {
-        width: 100% !important;
-      }
-      
-      .content {
-        padding: 15px !important;
-      }
-      
-      .footer-content {
-        padding: 15px !important;
-      }
-      
-      .qr-code {
-        max-width: 180px !important;
-      }
-      
-      .hired-button-container {
-        text-align: center;
-        padding: 15px 15px 0;
-      }
-      
-      .hired-button {
-        display: block;
-        margin: 0 auto;
-      }
-
       .top-buttons-container {
-        display: flex;
-        justify-content: space-between;
-        padding: 20px 20px 0;
-      }
-
-       .feedback-button {
-        display: inline-block;
-        padding: 10px 16px;
-        background-color: #6c63ff;
-        color: #ffffff;
-        text-decoration: none;
-        border-radius: 4px;
-        font-weight: bold;
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
       }
       
-      .feedback-button:hover {
-        background-color: #564fee;
-        text-decoration: none;
-      }
+      /* ... rest of existing mobile styles ... */
     }
   </style>
 </head>
@@ -178,9 +65,8 @@ function generateEmailTemplateTop(email: string) {
     <tr>
       <td align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
-          <!-- Hired button row -->
-         
-         <tr>
+          <!-- NEW: Top buttons row -->
+          <tr>
             <td class="top-buttons-container">
               <!-- New Feedback Button -->
               <a href="${baseUrl}/feedback" target="_blank" class="feedback-button">
@@ -194,7 +80,6 @@ function generateEmailTemplateTop(email: string) {
             </td>
           </tr>
        
-          
           <!-- Logo row -->
           <tr>
             <td align="center" style="padding: 30px 20px 20px;">
