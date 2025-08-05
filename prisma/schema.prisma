@@ -11,22 +11,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id             String    @id @default(auto()) @map("_id") @db.ObjectId
-  name           String?
-  email          String    @unique
-  emailVerified  DateTime?
-  image          String?
-  seniorityLevel String?
-  stack          String?
-  isConfirmed    Boolean   @default(false)
-  unsubscribed   Boolean   @default(false)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  accounts       Account[]
-  sessions Session[]
-}
-
 model users {
   id             String    @id @default(auto()) @map("_id") @db.ObjectId
   name           String?
@@ -35,48 +19,13 @@ model users {
   image          String?
   seniorityLevel String?
   stack          String?
-  isConfirmed    Boolean   @default(false)
-  unsubscribed   Boolean   @default(false)
+  confirmed    Boolean   @default(false)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
-  // accounts       Account[]
-  // sessions Session[]
-}
 
-model Account {
-  id                String  @id @default(auto()) @map("_id") @db.ObjectId
-  userId            String  @db.ObjectId
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String?
-  session_state     String?
-  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId], name: "providerAccountIdUnique")
-  @@index([userId], name: "userId")
-}
-
-model Session {
-  id           String   @id @default(auto()) @map("_id") @db.ObjectId
-  sessionToken String   @unique
-  userId       String   @db.ObjectId
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId], name: "userId")
-}
-
-model VerificationToken {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  identifier String
-  token      String   @unique
-  expires    DateTime
-
-  @@unique([identifier, token], name: "identifierToken")
+  status             String?   @default("free") // 'free', 'premium', 'expired'
+  subscriptionType   String?   // 'monthly', 'lifetime'
+  paymentMethod      String?   // 'stripe', 'abacate'
+  subscriptionStart  DateTime?
+  subscriptionEnd    DateTime?
 }

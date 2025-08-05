@@ -1,9 +1,9 @@
-// app/api/payment/stripe/route.ts
+// app/api/payments/stripe/route.ts
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Initialize Stripe with your secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
 export async function POST(request: Request) {
   try {
     // Validate environment variables
@@ -22,15 +22,29 @@ export async function POST(request: Request) {
     }
 
     // Parse request body
-    const { email } = await request.json();
+    const { email, billingType } = await request.json();
 
-    // Validate required fields
-    if (!email) {
+    // Validate billingType
+    if (!billingType || !['monthly', 'lifetime'].includes(billingType)) {
       return NextResponse.json(
-        { error: 'Email is required' },
+        { error: 'Invalid billing type' },
         { status: 400 }
       );
     }
+
+    // Determine price based on billing type
+    const priceData = {
+      monthly: {
+        name: 'Plano Premium Mensal',
+        unit_amount: 979, // R$29.00 in cents
+      },
+      lifetime: {
+        name: 'Plano Premium Vitalício',
+        unit_amount: 3979, // R$299.00 in cents
+      }
+    };
+
+    const selectedPrice = priceData[billingType as keyof typeof priceData];
 
     // Create Stripe Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -40,21 +54,26 @@ export async function POST(request: Request) {
           price_data: {
             currency: 'brl',
             product_data: {
-              name: 'Premium Plan',
+              name: selectedPrice.name,
             },
-            unit_amount: 979, // Amount in cents (R$9.79)
+            unit_amount: selectedPrice.unit_amount,
           },
           quantity: 1,
         },
       ],
       mode: 'payment',
       success_url: `${process.env.NEXTAUTH_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXTAUTH_URL}/`,
-      customer_email: email,
+      cancel_url: `${process.env.NEXTAUTH_URL}/planos`,
+      customer_email: email || undefined, // Only set if email exists
       metadata: {
-        user_email: email,
-        product: 'Premium Plan'
-      }
+        user_email: email || 'unknown',
+        product: selectedPrice.name,
+        billing_type: billingType
+      },
+    //   billing_address_collection: '',
+      phone_number_collection: {
+        enabled: true,
+      },
     });
 
     // Return the session URL to the client
@@ -65,16 +84,12 @@ export async function POST(request: Request) {
     });
     
   } catch (error: unknown) {
-    console.error('Stripe Checkout Error:', {
-      message: error.message,
-      stack: error.stack,
-      raw: error.raw || 'No raw error'
-    });
-
+    console.error('Stripe session creation error:', error);
+    
     return NextResponse.json(
       { 
-        error: 'Payment processing failed',
-        details: error.message || 'Unknown error'
+        error: 'Payment verification failed',
+        details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );

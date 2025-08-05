@@ -9,7 +9,7 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp, FaGithub } from "react-icons/fa";
+import { FaWhatsapp, FaGithub, FaStar } from "react-icons/fa";
 import {
   Tooltip,
   TooltipContent,
@@ -305,6 +305,18 @@ export default function Home() {
         />
       )}
 
+    <div className="flex items-center justify-center mb-4">
+      <Button
+          asChild
+          variant="outline"
+          className="py-2 sm:py-3 hover:scale-105 transition-transform cursor-pointer "
+        >
+          <Link href="/planos">
+            <FaStar className="mr-2 text-yellow-500" />
+            Ver Planos
+          </Link>
+        </Button>
+
       <div className="absolute top-4 right-4 z-50">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -322,6 +334,7 @@ export default function Home() {
           </TooltipContent>
         </Tooltip>
       </div>
+    </div>
 
       <main className="flex-grow flex flex-col items-center justify-center">
         <p className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}>

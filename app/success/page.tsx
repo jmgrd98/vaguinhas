@@ -7,9 +7,17 @@ import { CheckCircleIcon } from 'lucide-react';
 import { FaExclamation } from 'react-icons/fa';
 import Link from 'next/link';
 
+interface PaymentVerificationResult {
+  status: string;
+  userId?: string;
+  email?: string;
+  subscriptionType?: string;
+}
+
 export default function SuccessPage() {
   const [paymentStatus, setPaymentStatus] = useState<'loading' | 'success' | 'failed'>('loading');
   const [message, setMessage] = useState('Verifying your payment...');
+  const [userId, setUserId] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
 
@@ -26,11 +34,16 @@ export default function SuccessPage() {
           throw new Error(`Verification failed: ${response.status}`);
         }
 
-        const result = await response.json();
+        const result: PaymentVerificationResult = await response.json();
         
         if (result.status === 'paid') {
           setPaymentStatus('success');
           setMessage('Payment successful! Thank you for your purchase.');
+          
+          // Store the user ID for redirect
+          if (result.userId) {
+            setUserId(result.userId);
+          }
         } else {
           setPaymentStatus('failed');
           setMessage(`Payment status: ${result.status || 'unpaid'}`);
@@ -67,10 +80,10 @@ export default function SuccessPage() {
               </p>
             </div>
             <Link 
-              href="/" 
+              href={userId ? `/assinante/${userId}` : '/'} 
               className="inline-block px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
             >
-              Ir para página inicial
+              {userId ? 'Ir para sua página' : 'Ir para página inicial'}
             </Link>
           </div>
         )}
@@ -87,7 +100,7 @@ export default function SuccessPage() {
             </div>
             <div className="flex justify-center gap-4">
               <Link 
-                href="/" 
+                href="/planos" 
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
               >
                 Tente de novo
