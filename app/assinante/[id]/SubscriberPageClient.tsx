@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { FaSignOutAlt } from "react-icons/fa";
 import { useCompleteLogout } from "@/hooks/useCompleteLogout";
 import { useSession } from "next-auth/react";
+import CreatePaymentForm from "@/components/CreatePaymentForm";
 
 interface UserData {
   _id: string;
@@ -351,6 +352,8 @@ export default function SubscriberPageClient({
             >
               {updating ? "Atualizando…" : "Salvar alterações"}
             </Button>
+
+            <CreatePaymentForm userEmail={userData.email} />
           </div>
         </div>
       </div>

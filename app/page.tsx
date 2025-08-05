@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
+// import CreatePaymentForm from "@/components/CreatePaymentForm";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -393,6 +394,8 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)}
         resendConfirmation={resendConfirmation}
       />
+
+      {/* <CreatePaymentForm /> */}
     </div>
   );
 }
