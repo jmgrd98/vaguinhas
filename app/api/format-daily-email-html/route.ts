@@ -86,7 +86,7 @@ function generateEmailTemplateTop(email: string) {
       margin: 1.5rem 0;
     }
     
-    .job-content .apply-button, .hired-button, .feedback-button {
+    .job-content .apply-button {
       display: inline-block;
       padding: 10px 16px;
       background-color: #1a73e8;
@@ -174,8 +174,8 @@ function generateEmailTemplateTop(email: string) {
 </head>
 <body>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9f9f9; padding: 20px;">
-    <tr>
-      <td align="center">
+    <tr style="width: 100%;">
+      <td style="width: 100%;" align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
           <!-- Hired button row -->
          
