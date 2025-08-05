@@ -86,10 +86,9 @@ function generateEmailTemplateTop(email: string) {
       margin: 1.5rem 0;
     }
     
-    .job-content .apply-button {
+    .job-content .apply-button, .hired-button, .feedback-button {
       display: inline-block;
       padding: 10px 16px;
-      background-color: #1a73e8;
       color: #ffffff;
       text-decoration: none;
       border-radius: 4px;
@@ -107,11 +106,6 @@ function generateEmailTemplateTop(email: string) {
       text-decoration: none;
     }
     
-    .hired-button-container {
-      text-align: right;
-      padding: 20px 20px 0;
-    }
-    
     .job-content .company-link {
       display: inline-block;
       margin: 8px 0;
@@ -122,25 +116,26 @@ function generateEmailTemplateTop(email: string) {
       cursor: pointer;
     }
 
+    /* Top buttons container */
     .top-buttons-container {
-      width: 100%;
       display: flex;
-      align-items: center;
       justify-content: space-between;
+      padding: 20px 20px 0;
     }
 
-      .feedback-button {
-        display: inline-block;
-        background-color: #6c63ff;
-        color: #ffffff;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      
-      .feedback-button:hover {
-        background-color: #564fee;
-        text-decoration: none;
-      }
+    .feedback-button {
+      background-color: #6c63ff;
+      align-self: flex-start; /* Position at top left */
+    }
+    
+    .feedback-button:hover {
+      background-color: #564fee;
+      text-decoration: none;
+    }
+    
+    .hired-button {
+      align-self: flex-end; /* Position at top right */
+    }
     
     /* Media queries */
     @media only screen and (max-width: 600px) {
@@ -160,40 +155,39 @@ function generateEmailTemplateTop(email: string) {
         max-width: 180px !important;
       }
       
-      .hired-button-container {
-        text-align: center;
-        padding: 15px 15px 0;
+      .top-buttons-container {
+        flex-direction: column;
+        gap: 10px;
       }
       
-      .hired-button {
-        display: block;
-        margin: 0 auto;
+      .feedback-button, .hired-button {
+        align-self: center; /* Center buttons on mobile */
+        width: 100%;
+        text-align: center;
       }
     }
   </style>
 </head>
 <body>
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9f9f9; padding: 20px;">
-    <tr style="width: 100%;">
-      <td style="width: 100%;" align="center">
+    <tr>
+      <td align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
-          <!-- Hired button row -->
-         
-         <tr style="width: 100%;">
+          <!-- Top buttons row -->
+          <tr>
             <td class="top-buttons-container">
-              <!-- New Feedback Button -->
+              <!-- Feedback Button - Left Top -->
               <a href="${baseUrl}/feedback?email=${encodeURIComponent(email)}" target="_blank" class="feedback-button">
                 Deixe-nos sua avaliação ⭐
               </a>
               
-              <!-- Existing Hired Button -->
+              <!-- Hired Button - Right Top -->
               <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">
                 Consegui uma vaga! 🎉
               </a>
             </td>
           </tr>
        
-          
           <!-- Logo row -->
           <tr>
             <td align="center" style="padding: 30px 20px 20px;">
@@ -206,6 +200,7 @@ function generateEmailTemplateTop(email: string) {
             <td class="content">
 `;
 }
+
 
 const EMAIL_FOOTER = `
   <div class="footer-content" style="margin-top: 3rem; padding: 1.5rem; border-top: 1px solid #eaeaea; text-align: center; font-family: Arial, sans-serif; color: #333;">
