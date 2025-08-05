@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import juice from 'juice';
 
+
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
 
@@ -88,6 +89,7 @@ function generateEmailTemplateTop(email: string) {
     .job-content .apply-button, .hired-button, .feedback-button {
       display: inline-block;
       padding: 10px 16px;
+      background-color: #1a73e8;
       color: #ffffff;
       text-decoration: none;
       border-radius: 4px;
@@ -105,6 +107,11 @@ function generateEmailTemplateTop(email: string) {
       text-decoration: none;
     }
     
+    .hired-button-container {
+      text-align: right;
+      padding: 20px 20px 0;
+    }
+    
     .job-content .company-link {
       display: inline-block;
       margin: 8px 0;
@@ -115,21 +122,25 @@ function generateEmailTemplateTop(email: string) {
       cursor: pointer;
     }
 
-    /* Top buttons container */
     .top-buttons-container {
+      width: 100%;
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      padding: 20px 20px 0;
     }
 
-    .feedback-button {
-      background-color: #6c63ff;
-    }
-    
-    .feedback-button:hover {
-      background-color: #564fee;
-      text-decoration: none;
-    }
+      .feedback-button {
+        display: inline-block;
+        background-color: #6c63ff;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      
+      .feedback-button:hover {
+        background-color: #564fee;
+        text-decoration: none;
+      }
     
     /* Media queries */
     @media only screen and (max-width: 600px) {
@@ -149,10 +160,14 @@ function generateEmailTemplateTop(email: string) {
         max-width: 180px !important;
       }
       
-      .top-buttons-container {
-        flex-direction: column;
-        gap: 10px;
-        align-items: center;
+      .hired-button-container {
+        text-align: center;
+        padding: 15px 15px 0;
+      }
+      
+      .hired-button {
+        display: block;
+        margin: 0 auto;
       }
     }
   </style>
@@ -162,21 +177,23 @@ function generateEmailTemplateTop(email: string) {
     <tr>
       <td align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
-          <!-- Top buttons row -->
-          <tr>
+          <!-- Hired button row -->
+         
+         <tr style="width: 100%;">
             <td class="top-buttons-container">
-              <!-- Feedback Button - Left -->
+              <!-- New Feedback Button -->
               <a href="${baseUrl}/feedback?email=${encodeURIComponent(email)}" target="_blank" class="feedback-button">
                 Deixe-nos sua avaliação ⭐
               </a>
               
-              <!-- Hired Button - Right -->
+              <!-- Existing Hired Button -->
               <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">
                 Consegui uma vaga! 🎉
               </a>
             </td>
           </tr>
        
+          
           <!-- Logo row -->
           <tr>
             <td align="center" style="padding: 30px 20px 20px;">
@@ -243,11 +260,13 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const email = new URL(request.url).searchParams.get('email') || '';
     
     // Generate unsubscribe token from email
-    const unsubscribeToken = email ? btoa(email) : '';
+    // (You'll need to implement proper token generation in your subscription flow)
+    const unsubscribeToken = email ? btoa(email) : ''; // Simple base64 encoding for demo
     console.log('UNSUBSCRIBE TOKEN', unsubscribeToken)
     const contentType = request.headers.get('content-type') || '';
 
-    // Handle HTML content
+
+   // Handle HTML content
     if (contentType.includes('text/html') || contentType.includes('text/plain')) {
       rawHtml = await request.text();
     } 
@@ -314,6 +333,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     `;
     
     // Add unsubscribe link
+    // Then in the POST handler:
+     // Add unsubscribe link
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
         "{{UNSUBSCRIBE_LINK}}", 
@@ -327,6 +348,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const inlined = juice(fullEmail);
 
     return NextResponse.json({ email, html: inlined }, { status: 200 });
+
+    // return new NextResponse(inlined, {
+    //   status: 200,
+    //   headers: { 'Content-Type': 'text/html' },
+    // });
     
   } catch (error: unknown) {
     console.error('Error processing email:', error);
@@ -342,7 +368,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 }
 
-// GET handler
+// GET handler (simplificado)
 export async function GET(): Promise<NextResponse> {
   const usage = `
     <!DOCTYPE html>
