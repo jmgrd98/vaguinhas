@@ -15,9 +15,10 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FaSignOutAlt } from "react-icons/fa";
+import { FaSignOutAlt, FaStar } from "react-icons/fa";
 import { useCompleteLogout } from "@/hooks/useCompleteLogout";
 import { useSession } from "next-auth/react";
+import Link from "next/link";
 
 interface UserData {
   _id: string;
@@ -255,7 +256,7 @@ export default function SubscriberPageClient({
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center p-4 sm:p-8">
+    <div className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen flex flex-col items-center p-4 sm:p-8">
       <div className="relative w-full mb-8 flex items-center">
         <Button
           variant="outline"
@@ -265,6 +266,17 @@ export default function SubscriberPageClient({
         >
           <FaSignOutAlt className="mr-2" /> 
           {isLoggingOut ? "Saindo..." : "Sair"}
+        </Button>
+
+        <Button
+          asChild
+          variant="outline"
+          className="absolute right-0 cursor-pointer"
+        >
+          <Link href="/planos">
+            <FaStar className="mr-2 text-yellow-500" />
+            Ver Planos
+          </Link>
         </Button>
         <p className="mx-auto font-caprasimo caprasimo-regular text-5xl text-[#ff914d] font-bold text-center">
           vaguinhas
@@ -351,6 +363,7 @@ export default function SubscriberPageClient({
             >
               {updating ? "Atualizando…" : "Salvar alterações"}
             </Button>
+
           </div>
         </div>
       </div>
