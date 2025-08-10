@@ -117,8 +117,10 @@ export default function PubliqueUmaVaga() {
       </p>
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Publique uma vaguinha</h1>
-          
+          <div className='flex flex-col gap-1 mb-6'>
+            <h1 className="text-3xl font-bold text-gray-900">Publique uma vaguinha</h1>
+            <p className='font-caprasimo'>Alcance profissionais com o perfil que você procura! A vaga entrará em análise e será publicada em nossa jobsletter apenas para profissionais que se encaixem no perfil da vaga.</p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Link da vaga e Nome da empresa */}
             <div className='flex flex-col md:flex-row justify-evenly items-center gap-6'>
