@@ -71,7 +71,7 @@ export default function PubliqueUmaVaga() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || 'Erro ao publicar a vaga');
+        throw new Error(data.errors[0] || 'Erro ao publicar a vaga');
       }
 
       // Success handling
