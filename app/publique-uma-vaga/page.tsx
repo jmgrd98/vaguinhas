@@ -4,8 +4,12 @@ import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { FaArrowLeft } from "react-icons/fa";
+import { toast } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 
 export default function PubliqueUmaVaga() {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     linkVaga: '',
     nomeEmpresa: '',
@@ -32,13 +36,82 @@ export default function PubliqueUmaVaga() {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
+    
+    // Validate required fields
+    if (!formData.linkVaga || !formData.nomeEmpresa || !formData.cargo || 
+        !formData.stack || !formData.seniorityLevel || !formData.descricao) {
+      toast.error('Por favor, preencha todos os campos obrigatórios');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch('/api/post-a-job', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          linkVaga: formData.linkVaga,
+          nomeEmpresa: formData.nomeEmpresa,
+          cambio: formData.cambio,
+          tipoVaga: formData.tipoVaga,
+          stack: formData.stack,
+          seniorityLevel: formData.seniorityLevel,
+          cargo: formData.cargo,
+          descricao: formData.descricao,
+          createdAt: new Date().toISOString(),
+          status: 'pending' // You might want to add a status field for moderation
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Erro ao publicar a vaga');
+      }
+
+      // Success handling
+      toast.success('Sua vaga foi enviada e entrará em análise! 🎉', {
+        // description: 'Você receberá uma confirmação por e-mail em breve.',
+        duration: 5000,
+      });
+
+      // Reset form
+      setFormData({
+        linkVaga: '',
+        nomeEmpresa: '',
+        cambio: 'BRL',
+        tipoVaga: 'nacional',
+        stack: '',
+        seniorityLevel: '',
+        cargo: '',
+        descricao: ''
+      });
+
+    } catch (error) {
+      console.error('Error submitting job:', error);
+      toast.error(error instanceof Error ? error.message : 'Erro ao publicar a vaga. Tente novamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+      <button
+            onClick={() => window.history.back()}
+            disabled={isSubmitting}
+            className={`w-full max-w-[120px] gap-2 cursor-pointer flex justify-center items-center p-2 border border-gray-300 rounded-md shadow-sm text-base font-medium bg-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+              isSubmitting ? 'opacity-50 cursor-not-allowed text-gray-400' : 'text-gray-700 hover:bg-gray-50'
+            }`}
+          >
+            <FaArrowLeft size={20} />
+            Voltar
+          </button>
       <p className={`font-caprasimo caprasimo-regular text-6xl sm:text-6xl text-[#ff914d] font-bold text-center mb-4`}>
         vaguinhas
       </p>
@@ -61,6 +134,7 @@ export default function PubliqueUmaVaga() {
                   placeholder="https://linkdavaga.com.br"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -76,6 +150,7 @@ export default function PubliqueUmaVaga() {
                   placeholder="Qual empresa está contratando?"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
             </div>
@@ -93,6 +168,7 @@ export default function PubliqueUmaVaga() {
                 placeholder="React Developer"
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
+                disabled={isSubmitting}
               />
               <p className="text-xs text-gray-500 mt-1">Qual o profissional perfeito para a vaga?</p>
             </div>
@@ -107,6 +183,7 @@ export default function PubliqueUmaVaga() {
                   value={formData.stack} 
                   onValueChange={(value) => handleSelectChange('stack', value)} 
                   required
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione sua área" />
@@ -138,6 +215,7 @@ export default function PubliqueUmaVaga() {
                   value={formData.seniorityLevel} 
                   onValueChange={(value) => handleSelectChange('seniorityLevel', value)} 
                   required
+                  disabled={isSubmitting}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Selecione seu nível" />
@@ -165,6 +243,7 @@ export default function PubliqueUmaVaga() {
                 placeholder="Descreva a vaga, requisitos, benefícios, etc..."
                 className="min-h-[150px] w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
+                disabled={isSubmitting}
               />
               <p className="text-xs text-gray-500 mt-1">
                 Inclua detalhes importantes sobre a vaga, responsabilidades, requisitos e benefícios
@@ -175,15 +254,21 @@ export default function PubliqueUmaVaga() {
             <div className="pt-6">
               <button
                 type="submit"
-                className="w-full md:w-auto px-8 py-3 bg-gray-900 text-white font-medium rounded-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition-all transform hover:scale-105"
+                disabled={isSubmitting}
+                className={`w-full md:w-auto px-8 py-3 font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all transform ${
+                  isSubmitting 
+                    ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                    : 'bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-900 hover:scale-105'
+                }`}
               >
-                Enviar
+                {isSubmitting ? 'Enviando...' : 'Enviar'}
               </button>
             </div>
             
           </form>
         </div>
       </div>
+      <Toaster closeButton duration={5000} position="bottom-right" richColors  />
     </div>
   );
 }
