@@ -322,6 +322,13 @@ export default function Home() {
         </Tooltip>
       </div>
 
+      <Link
+        className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 text-black dark:text-white hover:text-blue-500 transition-colors font-medium px-4 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:scale-105"
+        href="/publique-uma-vaga"
+      >
+          Publique uma vaga
+      </Link>
+
       <main className="flex-grow flex flex-col items-center justify-center">
         <p className={`font-caprasimo caprasimo-regular text-6xl sm:text-8xl text-[#ff914d] font-bold text-center`}>
           vaguinhas
