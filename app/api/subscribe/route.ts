@@ -19,6 +19,7 @@ const requestSchema = z.object({
   email: emailSchema,
   seniorityLevel: z.string().min(1).max(50),
   stacks: z.array(z.string().min(1).max(50)).min(1).optional(),
+  linguagens: z.string().min(1).max(50).optional(),
 });
 
 // Initialize rate limiter
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       );
     }
     
-    const { email: normalizedEmail, seniorityLevel, stacks } = validation.data;
+    const { email: normalizedEmail, seniorityLevel, stacks, linguagens} = validation.data;
     const stack = stacks && stacks[0];
 
     const extractEmailType = (email: string): string | null => {
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       emailType,
       seniorityLevel,
       stacks: [stack],
+      linguagens: linguagens || null,
       createdAt: new Date(),
       confirmed: false,
       confirmationToken,
