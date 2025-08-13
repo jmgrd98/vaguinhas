@@ -93,19 +93,29 @@ export default function SubscriberAreaLoginModal({
     const userData = await loginRes.json();
     const userId = userData.userId;
 
-    // Step 2: Create NextAuth session
+    // Step 2: Create NextAuth session with redirect: false
     const signInResult = await signIn('credentials', {
       email: accessEmail,
       password: accessPassword,
-      redirect: true,  // Change to true
-      callbackUrl: `/assinante/${userId}` // Specify where to go
+      redirect: false,  // IMPORTANT: Set to false to handle redirect manually
     });
+
+    if (signInResult?.error) {
+      console.error('SignIn error:', signInResult.error);
+      toast.error("Erro na autenticação");
+      return;
+    }
+
     if (signInResult?.ok) {
+      // Store token if available
       if (userData.token) {
         localStorage.setItem('sessionToken', userData.token);
       }
       
       toast.success("Login realizado com sucesso!");
+      
+      // Close the modal first
+      onClose();
       
       // Check for callbackUrl in the URL params
       const urlParams = new URLSearchParams(window.location.search);
@@ -114,10 +124,9 @@ export default function SubscriberAreaLoginModal({
       // Use callbackUrl if it exists, otherwise go to subscriber page
       const redirectUrl = callbackUrl || `/assinante/${userId}`;
       
-      // Use router.push with a small delay
-      setTimeout(() => {
-        router.push(redirectUrl);
-      }, 100);
+      // Perform the redirect
+      // Use replace instead of push to avoid back button issues
+      router.replace(redirectUrl);
     }
     
   } catch (error) {
@@ -126,7 +135,7 @@ export default function SubscriberAreaLoginModal({
   } finally {
     setIsLoading(false);
   }
-}, [accessEmail, accessPassword, resendConfirmation, validateEmail, router]);
+}, [accessEmail, accessPassword, resendConfirmation, validateEmail, router, onClose]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
