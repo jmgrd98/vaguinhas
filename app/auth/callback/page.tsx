@@ -11,7 +11,7 @@ export default function MagicLinkVerification() {
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
   const [progress, setProgress] = useState(0);
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession(); // Get update method
 
   useEffect(() => {
     const verifyToken = async () => {
@@ -22,12 +22,10 @@ export default function MagicLinkVerification() {
       }
 
       try {
-        // Simulate progress
         const interval = setInterval(() => {
           setProgress(prev => Math.min(prev + 10, 90));
         }, 300);
 
-        // Use the magic-link provider
         const result = await signIn('magic-link', {
           token,
           redirect: false,
@@ -41,10 +39,15 @@ export default function MagicLinkVerification() {
         }
 
         if (result?.ok) {
-          // Wait a moment for session to update
-          setTimeout(() => {
-            // Session will be available after successful sign in
-          }, 500);
+          // Force immediate session update
+          const updatedSession = await update();
+          
+          // Redirect directly after session update
+          if (updatedSession?.user?.id) {
+            router.push(`/assinante/${updatedSession.user.id}`);
+          } else {
+            throw new Error('Session update failed');
+          }
         }
       } catch (error) {
         console.error('Verification error:', error);
@@ -54,7 +57,7 @@ export default function MagicLinkVerification() {
     };
 
     verifyToken();
-  }, [token, router]);
+  }, [token, router, update]); // Add update to dependencies
 
   // Watch for session changes after sign in
   useEffect(() => {
