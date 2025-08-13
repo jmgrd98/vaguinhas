@@ -1,4 +1,3 @@
-// lib/nextAuth.ts
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -17,12 +16,13 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const { email, password } = credentials;
-          const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/login`, {
+          
+          // FIX 1: Use absolute URL for internal API calls
+          const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+          const res = await fetch(`${baseUrl}/api/auth/login`, {
             method: "POST",
             headers: { 
               "Content-Type": "application/json",
-              // Remove the Authorization header if your login endpoint doesn't need it
-              // "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
             },
             body: JSON.stringify({ email, password }),
           });
@@ -31,17 +31,13 @@ export const authOptions: NextAuthOptions = {
             const data = await res.json();
             console.log('Login response:', data);
             
-            // Return user object for NextAuth
-            // Make sure to return id, not userId
             return {
               id: data.userId || data.id || data._id,
               email: data.email || email,
-              // Include any other user data you need
               name: data.name,
             };
           }
           
-          // Handle specific error cases
           if (res.status === 401) {
             throw new Error('Invalid credentials');
           } else if (res.status === 403) {
@@ -66,7 +62,8 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.token) return null;
         
-        const res = await fetch(`${process.env.NEXTAUTH_URL}/api/auth/verify-magic-link`, {
+        const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+        const res = await fetch(`${baseUrl}/api/auth/verify-magic-link`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ token: credentials.token }),
@@ -85,7 +82,6 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // Initial sign in
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -93,12 +89,24 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Send properties to the client
       if (session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
       }
       return session;
+    },
+    // FIX 2: Add redirect callback to handle custom redirects
+    async redirect({ url, baseUrl }) {
+      // If the url is a relative path, ensure it starts with a slash
+      if (url.startsWith('/')) {
+        return `${baseUrl}${url}`;
+      }
+      // If it's already an absolute URL on the same origin, allow it
+      else if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      // Default redirect to home
+      return baseUrl;
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
@@ -109,20 +117,44 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/",
     signOut: "/",
-    error: "/", // Error code passed in query string as ?error=
+    error: "/",
   },
+  // FIX 3: Improved cookie configuration for production
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        // Add domain for production if using subdomains
+        ...(process.env.NODE_ENV === 'production' && process.env.COOKIE_DOMAIN 
+          ? { domain: process.env.COOKIE_DOMAIN } 
+          : {}),
       }
-    }
+    },
+    callbackUrl: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Secure-' : ''}next-auth.callback-url`,
+      options: {
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      }
+    },
+    csrfToken: {
+      name: `${process.env.NODE_ENV === 'production' ? '__Host-' : ''}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      }
+    },
   },
-  debug: process.env.NODE_ENV === 'development', // Enable debug messages in development
+  // FIX 4: Add trustHost for production
+  // trustHost: process.env.NODE_ENV === 'production',
+  debug: process.env.NODE_ENV === 'development',
   events: {
     async signIn({ user }) {
       console.log('User signed in:', user);
@@ -132,3 +164,5 @@ export const authOptions: NextAuthOptions = {
     }
   }
 };
+
+export default authOptions;

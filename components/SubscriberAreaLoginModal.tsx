@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { signIn, signOut, useSession } from "next-auth/react";
@@ -18,7 +18,7 @@ export default function SubscriberAreaLoginModal({
   onClose,
   resendConfirmation
 }: SubscriberAreaLoginModalProps) {
-  const router = useRouter();
+  // const router = useRouter();
   const { data: session } = useSession();
   const [accessEmail, setAccessEmail] = useState("");
   const [accessPassword, setAccessPassword] = useState("");
@@ -59,12 +59,11 @@ export default function SubscriberAreaLoginModal({
   setIsLoading(true);
   
   try {
-    // Step 1: First validate credentials with your API
+    // First, validate with your API to get the userId
     const loginRes = await fetch("/api/auth/login", {
       method: "POST",
       headers: { 
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
       },
       body: JSON.stringify({ 
         email: accessEmail, 
@@ -73,7 +72,6 @@ export default function SubscriberAreaLoginModal({
     });
 
     if (!loginRes.ok) {
-      // Handle your specific error cases
       if (loginRes.status === 401) {
         toast.error("Credenciais inválidas");
       } else if (loginRes.status === 403) {
@@ -86,56 +84,40 @@ export default function SubscriberAreaLoginModal({
       } else {
         toast.error("Erro ao fazer login");
       }
+      setIsLoading(false);
       return;
     }
 
-    // Get the user data from your API
     const userData = await loginRes.json();
     const userId = userData.userId;
 
-    // Step 2: Create NextAuth session with redirect: false
+    // Store token if needed
+    if (userData.token) {
+      localStorage.setItem('sessionToken', userData.token);
+    }
+
+    // FIX 5: Let NextAuth handle the redirect
+    // Use redirect: true and provide callbackUrl
     const signInResult = await signIn('credentials', {
       email: accessEmail,
       password: accessPassword,
-      redirect: false,  // IMPORTANT: Set to false to handle redirect manually
+      redirect: true,  // Let NextAuth handle the redirect
+      callbackUrl: `/assinante/${userId}`, // Specify where to go after login
     });
 
-    if (signInResult?.error) {
-      console.error('SignIn error:', signInResult.error);
+    // This code won't execute if redirect: true (user will be redirected)
+    // But keep it for error handling in case something goes wrong
+    if (!signInResult?.ok) {
       toast.error("Erro na autenticação");
-      return;
-    }
-
-    if (signInResult?.ok) {
-      // Store token if available
-      if (userData.token) {
-        localStorage.setItem('sessionToken', userData.token);
-      }
-      
-      toast.success("Login realizado com sucesso!");
-      
-      // Close the modal first
-      onClose();
-      
-      // Check for callbackUrl in the URL params
-      const urlParams = new URLSearchParams(window.location.search);
-      const callbackUrl = urlParams.get('callbackUrl');
-      
-      // Use callbackUrl if it exists, otherwise go to subscriber page
-      const redirectUrl = callbackUrl || `/assinante/${userId}`;
-      
-      // Perform the redirect
-      // Use replace instead of push to avoid back button issues
-      router.replace(redirectUrl);
+      setIsLoading(false);
     }
     
   } catch (error) {
     console.error('Login error:', error);
     toast.error("Erro ao acessar área do assinante");
-  } finally {
     setIsLoading(false);
   }
-}, [accessEmail, accessPassword, resendConfirmation, validateEmail, router, onClose]);
+}, [accessEmail, accessPassword, resendConfirmation, validateEmail]);
 
   const handlePasswordReset = useCallback(async () => {
     if (!validateEmail(resetEmail)) {
