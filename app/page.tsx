@@ -272,11 +272,17 @@ export default function Home() {
           <SelectValue placeholder="Selecione seu nível profissional" />
         </SelectTrigger>
         <SelectContent>
-          {["junior", "pleno", "senior"].map(level => (
-            <SelectItem key={level} value={level}>
-              {level.charAt(0).toUpperCase() + level.slice(1)}
-            </SelectItem>
-          ))}
+          {["junior", "pleno", "senior"].map(level => {
+            const displayText = level === "junior" ? "Júnior" : 
+                              level === "senior" ? "Sênior" : 
+                              level.charAt(0).toUpperCase() + level.slice(1);
+            
+            return (
+              <SelectItem key={level} value={level}>
+                {displayText}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 
