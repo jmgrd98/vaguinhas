@@ -28,40 +28,11 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
-import { trackSubscription, debugLinkedInTracking, isLinkedInTrackingAvailable } from '@/utils/linkedinTracking';
+import { linkedInTrack } from "nextjs-linkedin-insight-tag";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
-interface LinkedInTrackingData {
-  conversion_id?: string;
-  conversion_value?: number;
-  currency?: string;
-  email?: string;
-  seniority_level?: string;
-  stack?: string;
-  user_id?: string;
-  campaign_id?: string;
-  source?: string;
-  medium?: string;
-  [key: string]: string | number | boolean | undefined;
-}
-
-declare global {
-  interface Window {
-    lintrk: (action: 'track', data?: LinkedInTrackingData) => void;
-    _linkedin_partner_id?: string;
-    _linkedin_data_partner_ids?: string[];
-  }
-}
-
-export {};
-
-
-if (typeof window !== 'undefined' && window.lintrk) {
-  window.lintrk('track', { conversion_id: 'subscribe' });
-}
-
-// Custom hooks (keep these as they are)
+// Custom hooks
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
     width: typeof window !== "undefined" ? window.innerWidth : 0,
@@ -129,12 +100,6 @@ export default function Home() {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      debugLinkedInTracking();
-    }
-  }, []);
-
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     return emailSchema.safeParse(emailToValidate).success;
@@ -157,84 +122,91 @@ export default function Home() {
   }, [showConfetti]);
 
   // Form submission
- const saveEmail = useCallback(async () => {
-  if (!validateEmail(email)) {
-    setValidationError("E-mail inválido");
-    return;
-  }
-  setStatus("loading");
-
-  try {
-    const res = await fetch("/api/subscribe", {
-      method: "POST",
-      headers: { 
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-      },
-      body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
+  const saveEmail = useCallback(async () => {
+    if (!validateEmail(email)) {
+      setValidationError("E-mail inválido");
+      return;
     }
+    setStatus("loading");
 
-    if (res.status === 201) {
-      // LinkedIn Conversion Tracking with proper typing
-      if (isLinkedInTrackingAvailable()) {
-        trackSubscription({
-          email: email,
-          seniority_level: seniorityLevel,
-          stack: stack
-        });
+    try {
+      const res = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+        },
+        body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
       }
 
-      localStorage.setItem("confirmationEmail", email);
-      localStorage.setItem("lastResend", Date.now().toString());
-      
-      setCooldown(60);
-      setCanResend(false);
-      setStatus("success");
-      setShowConfetti(true);
-      setShowSuccessModal(true);
-      setEmail("");
-      setSeniorityLevel("");
-      setStack("");
-
-      // Schedule follow-up emails
-      const scheduleEmail = async (endpoint: string, delay: number): Promise<void> => {
-        setTimeout(async () => {
-          try {
-            await fetch(endpoint, {
-              method: "POST",
-              headers: { 
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-               },
-              body: JSON.stringify({ email })
+      if (res.status === 201) {
+        const conversionId = 1234;
+        try {
+          linkedInTrack(conversionId);
+          
+          // Debug logging in development
+          if (process.env.NODE_ENV === 'development') {
+            console.log('LinkedIn conversion tracked:', {
+              conversion_id: 'subscribe',
+              seniority_level: seniorityLevel,
+              stack: stack
             });
-          } catch (err) {
-            console.error(`Error sending ${endpoint}:`, err);
           }
-        }, delay);
-      };
+        } catch (trackingError) {
+          console.error('LinkedIn tracking error:', trackingError);
+        }
 
-      scheduleEmail("/api/emails/send-favourite-on-github-email", 120_000);
-      scheduleEmail("/api/emails/send-feedback-email", 600_000);
-    } 
-    else if (res.status === 409) {
-      toast.warning("Esse e-mail já está cadastrado!", {
-        description: "Obrigado, seu e-mail já foi validado.",
-      });
+        localStorage.setItem("confirmationEmail", email);
+        localStorage.setItem("lastResend", Date.now().toString());
+        
+        setCooldown(60);
+        setCanResend(false);
+        setStatus("success");
+        setShowConfetti(true);
+        setShowSuccessModal(true);
+        setEmail("");
+        setSeniorityLevel("");
+        setStack("");
+
+        // Schedule follow-up emails
+        const scheduleEmail = async (endpoint: string, delay: number): Promise<void> => {
+          setTimeout(async () => {
+            try {
+              await fetch(endpoint, {
+                method: "POST",
+                headers: { 
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+                 },
+                body: JSON.stringify({ email })
+              });
+            } catch (err) {
+              console.error(`Error sending ${endpoint}:`, err);
+            }
+          }, delay);
+        };
+
+        scheduleEmail("/api/emails/send-favourite-on-github-email", 120_000);
+        scheduleEmail("/api/emails/send-feedback-email", 600_000);
+      } 
+      else if (res.status === 409) {
+        toast.warning("Esse e-mail já está cadastrado!", {
+          description: "Obrigado, seu e-mail já foi validado.",
+        });
+      }
+      else {
+        throw new Error("Unexpected response status");
+      }
+    } catch (err: unknown) {
+      setStatus("error");
+      toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
     }
-    else {
-      throw new Error("Unexpected response status");
-    }
-  } catch (err: unknown) {
-    setStatus("error");
-    toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
-  }
-}, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend]);
+  }, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend]);
 
   // Resend confirmation
   const resendConfirmation = useCallback(async (emailToResend: string) => {
@@ -273,6 +245,18 @@ export default function Home() {
       toast.error("Erro ao reenviar e-mail de confirmação");
     }
   }, [setCooldown, setCanResend]);
+
+  // Test LinkedIn tracking function (remove in production)
+  const testLinkedInTracking = useCallback(() => {
+    try {
+      linkedInTrack('debug_test');
+      console.log('LinkedIn test conversion fired');
+      toast.success('LinkedIn tracking test fired!');
+    } catch (error) {
+      console.error('LinkedIn tracking test failed:', error);
+      toast.error('LinkedIn tracking test failed');
+    }
+  }, []);
 
   // Form rendering
   const renderForm = () => (
@@ -341,6 +325,17 @@ export default function Home() {
       >
         {status === "loading" ? "Enviando…" : "Quero receber vaguinhas!"}
       </Button>
+
+      {/* Debug button - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <Button 
+          variant="outline" 
+          onClick={testLinkedInTracking}
+          className="mt-2"
+        >
+          Test LinkedIn Tracking
+        </Button>
+      )}
     </div>
   );
 
