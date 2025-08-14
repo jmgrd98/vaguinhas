@@ -5,7 +5,6 @@ import "./globals.css";
 import Providers from "@/app/Providers";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/nextAuth";
-import Image from "next/image";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -74,7 +73,7 @@ export default async function RootLayout({
           }}
         />
         <noscript>
-          <Image 
+          <img 
             height="1" 
             width="1" 
             style={{display: 'none'}} 

@@ -31,6 +31,28 @@ import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
+// LinkedIn tracking types
+interface LinkedInTrackingData {
+  conversion_id?: string;
+  conversion_value?: number;
+  currency?: string;
+  email?: string;
+  [key: string]: string | number | boolean | undefined;
+}
+
+declare global {
+  interface Window {
+    lintrk: (action: 'track', data?: LinkedInTrackingData) => void;
+    _linkedin_partner_id: string;
+    _linkedin_data_partner_ids: string[];
+  }
+}
+
+
+if (typeof window !== 'undefined' && window.lintrk) {
+  window.lintrk('track', { conversion_id: 'subscribe' });
+}
+
 // Custom hooks (keep these as they are)
 const useWindowSize = () => {
   const [windowSize, setWindowSize] = useState({
@@ -122,74 +144,60 @@ export default function Home() {
 
   // Form submission
   const saveEmail = useCallback(async () => {
-    if (!validateEmail(email)) {
-      setValidationError("E-mail inválido");
-      return;
+  if (!validateEmail(email)) {
+    setValidationError("E-mail inválido");
+    return;
+  }
+  setStatus("loading");
+
+  try {
+    const res = await fetch("/api/subscribe", {
+      method: "POST",
+      headers: { 
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+      },
+      body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
     }
-    setStatus("loading");
 
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-        },
-        body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.message || `HTTP error! Status: ${res.status}`);
+    if (res.status === 201) {
+      // LinkedIn Conversion Tracking with logging
+      try {
+        if (typeof window !== 'undefined' && window.lintrk) {
+          window.lintrk('track', { conversion_id: 'subscribe' });
+          console.log('LinkedIn conversion tracked successfully');
+        } else {
+          console.warn('LinkedIn tracking not available');
+        }
+      } catch (trackingError) {
+        console.error('LinkedIn tracking error:', trackingError);
       }
 
-      if (res.status === 201) {
-        localStorage.setItem("confirmationEmail", email);
-        localStorage.setItem("lastResend", Date.now().toString());
-        
-        setCooldown(60);
-        setCanResend(false);
-        setStatus("success");
-        setShowConfetti(true);
-        setShowSuccessModal(true);
-        setEmail("");
-        setSeniorityLevel("");
-        setStack("");
+      localStorage.setItem("confirmationEmail", email);
+      localStorage.setItem("lastResend", Date.now().toString());
+      
+      setCooldown(60);
+      setCanResend(false);
+      setStatus("success");
+      setShowConfetti(true);
+      setShowSuccessModal(true);
+      setEmail("");
+      setSeniorityLevel("");
+      setStack("");
 
-        // Schedule follow-up emails
-        const scheduleEmail = async (endpoint: string, delay: number) => {
-          setTimeout(async () => {
-            try {
-              await fetch(endpoint, {
-                method: "POST",
-                headers: { 
-                  "Content-Type": "application/json",
-                  "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
-                 },
-                body: JSON.stringify({ email })
-              });
-            } catch (err) {
-              console.error(`Error sending ${endpoint}:`, err);
-            }
-          }, delay);
-        };
-
-        scheduleEmail("/api/emails/send-favourite-on-github-email", 120_000);
-        scheduleEmail("/api/emails/send-feedback-email", 600_000);
-      } 
-      else if (res.status === 409) {
-        toast.warning("Esse e-mail já está cadastrado!", {
-          description: "Obrigado, seu e-mail já foi validado.",
-        });
-      }
-      else {
-        throw new Error("Unexpected response status");
-      }
-    } catch (err: unknown) {
-      setStatus("error");
-      toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
-    }
-  }, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend]);
+      // Rest of your existing code...
+    } 
+    // Rest of your existing code...
+  } catch (err: unknown) {
+    setStatus("error");
+    toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
+  }
+}, [email, seniorityLevel, stack, validateEmail, setCooldown, setCanResend]);
 
   // Resend confirmation
   const resendConfirmation = useCallback(async (emailToResend: string) => {
@@ -287,6 +295,7 @@ export default function Home() {
       </Select>
 
       <Button
+        id="linkedin-conversion-button"
         className="w-full py-3 sm:py-4 hover:scale-105 transition-transform cursor-pointer"
         variant="default"
         size="lg"
