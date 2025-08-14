@@ -9,7 +9,7 @@ import {
   AlertDescription,
 } from "@/components/ui/alert";
 import { z } from "zod";
-import { FaWhatsapp, FaGithub } from "react-icons/fa";
+import { FaWhatsapp, FaGithub, FaStar } from "react-icons/fa";
 import {
   Tooltip,
   TooltipContent,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
+// import CreatePaymentForm from "@/components/CreatePaymentForm";
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
@@ -304,6 +305,18 @@ export default function Home() {
         />
       )}
 
+    <div className="flex items-center justify-center mb-4">
+      <Button
+          asChild
+          variant="outline"
+          className="py-2 sm:py-3 hover:scale-105 transition-transform cursor-pointer "
+        >
+          <Link href="/planos">
+            <FaStar className="mr-2 text-yellow-500" />
+            Ver Planos
+          </Link>
+        </Button>
+
       <div className="absolute top-4 right-4 z-50">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -321,6 +334,7 @@ export default function Home() {
           </TooltipContent>
         </Tooltip>
       </div>
+    </div>
 
       <Link
         className="absolute top-4 left-1/2 transform -translate-x-1/2 z-50 text-black dark:text-white hover:text-blue-500 transition-colors font-medium px-4 py-2 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm rounded-lg border border-gray-200 dark:border-gray-700 hover:scale-105"
@@ -400,6 +414,8 @@ export default function Home() {
         onClose={() => setIsModalOpen(false)}
         resendConfirmation={resendConfirmation}
       />
+
+      {/* <CreatePaymentForm /> */}
     </div>
   );
 }
