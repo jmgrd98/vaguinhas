@@ -1,6 +1,8 @@
-import { connectToDatabase } from "@/lib/mongodb";
-import { NextRequest, NextResponse } from "next/server";
+// app/api/auth/verify-magic-link/route.ts
+import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
+import { connectToDatabase } from "@/lib/mongodb";
+import { ObjectId } from 'mongodb';
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,14 +10,37 @@ export async function POST(req: NextRequest) {
     
     if (!token) {
       return NextResponse.json(
-        { message: "Token é obrigatório" },
+        { message: 'Token is required' },
         { status: 400 }
+      );
+    }
+    
+    // Verify JWT token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+        userId: string;
+        type: string;
+      };
+    } catch (error: unknown) {
+      console.error("❌ Error verifying token:", error);
+      return NextResponse.json(
+        { message: 'Invalid or expired token' },
+        { status: 401 }
+      );
+    }
+    
+    // Check if it's a magic link token
+    if (decoded.type !== 'magic-link') {
+      return NextResponse.json(
+        { message: 'Invalid token type' },
+        { status: 401 }
       );
     }
     
     const { db } = await connectToDatabase();
     
-    // Find and validate token
+    // Check if token exists in database and hasn't been used
     const magicLink = await db.collection("magic_links").findOne({
       token,
       used: false,
@@ -24,49 +49,40 @@ export async function POST(req: NextRequest) {
     
     if (!magicLink) {
       return NextResponse.json(
-        { message: "Link inválido ou expirado" },
+        { message: 'Token not found or already used' },
         { status: 401 }
-      );
-    }
-    
-    // Get user
-    const user = await db.collection("users").findOne({
-      _id: magicLink.userId
-    });
-    
-    if (!user) {
-      return NextResponse.json(
-        { message: "Usuário não encontrado" },
-        { status: 404 }
       );
     }
     
     // Mark token as used
     await db.collection("magic_links").updateOne(
       { _id: magicLink._id },
-      { $set: { used: true, usedAt: new Date() } }
+      { $set: { used: true } }
     );
     
-    // Create session token
-    const sessionToken = jwt.sign(
-      {
-        userId: user._id.toString(),
-        email: user.email,
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: "7d" }
-    );
+    // Get user details
+    const user = await db.collection("users").findOne({
+      _id: new ObjectId(decoded.userId)
+    });
+    
+    if (!user) {
+      return NextResponse.json(
+        { message: 'User not found' },
+        { status: 404 }
+      );
+    }
     
     return NextResponse.json({
-      message: "Login realizado com sucesso!",
-      token: sessionToken,
-      userId: user._id.toString()
+      userId: user._id.toString(),
+      email: user.email,
+      name: user.name,
+      success: true
     });
     
   } catch (error) {
-    console.error("Verification error:", error);
+    console.error('Verify magic link error:', error);
     return NextResponse.json(
-      { message: "Erro na verificação" },
+      { message: 'Failed to verify magic link' },
       { status: 500 }
     );
   }

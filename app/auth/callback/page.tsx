@@ -6,7 +6,7 @@ import { signIn, useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 
-export default function MagicLinkVerification() {
+export default function CallbakPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
