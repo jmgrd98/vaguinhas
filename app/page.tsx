@@ -28,25 +28,33 @@ import {
 } from "@/components/ui/select";
 import SubscriberAreaLoginModal from "@/components/SubscriberAreaLoginModal";
 import SubscriptionSuccessModal from "@/components/SubscriptionSuccessModal";
+import { trackSubscription, debugLinkedInTracking, isLinkedInTrackingAvailable } from '@/utils/linkedinTracking';
 
 const emailSchema = z.string().email("E-mail inválido").toLowerCase();
 
-// LinkedIn tracking types
 interface LinkedInTrackingData {
   conversion_id?: string;
   conversion_value?: number;
   currency?: string;
   email?: string;
+  seniority_level?: string;
+  stack?: string;
+  user_id?: string;
+  campaign_id?: string;
+  source?: string;
+  medium?: string;
   [key: string]: string | number | boolean | undefined;
 }
 
 declare global {
   interface Window {
     lintrk: (action: 'track', data?: LinkedInTrackingData) => void;
-    _linkedin_partner_id: string;
-    _linkedin_data_partner_ids: string[];
+    _linkedin_partner_id?: string;
+    _linkedin_data_partner_ids?: string[];
   }
 }
+
+export {};
 
 
 if (typeof window !== 'undefined' && window.lintrk) {
@@ -121,6 +129,12 @@ export default function Home() {
   
   const inputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      debugLinkedInTracking();
+    }
+  }, []);
+
   // Email validation
   const validateEmail = useCallback((emailToValidate: string): boolean => {
     return emailSchema.safeParse(emailToValidate).success;
@@ -143,7 +157,7 @@ export default function Home() {
   }, [showConfetti]);
 
   // Form submission
-  const saveEmail = useCallback(async () => {
+ const saveEmail = useCallback(async () => {
   if (!validateEmail(email)) {
     setValidationError("E-mail inválido");
     return;
@@ -166,16 +180,13 @@ export default function Home() {
     }
 
     if (res.status === 201) {
-      // LinkedIn Conversion Tracking with logging
-      try {
-        if (typeof window !== 'undefined' && window.lintrk) {
-          window.lintrk('track', { conversion_id: 'subscribe' });
-          console.log('LinkedIn conversion tracked successfully');
-        } else {
-          console.warn('LinkedIn tracking not available');
-        }
-      } catch (trackingError) {
-        console.error('LinkedIn tracking error:', trackingError);
+      // LinkedIn Conversion Tracking with proper typing
+      if (isLinkedInTrackingAvailable()) {
+        trackSubscription({
+          email: email,
+          seniority_level: seniorityLevel,
+          stack: stack
+        });
       }
 
       localStorage.setItem("confirmationEmail", email);
@@ -190,9 +201,35 @@ export default function Home() {
       setSeniorityLevel("");
       setStack("");
 
-      // Rest of your existing code...
+      // Schedule follow-up emails
+      const scheduleEmail = async (endpoint: string, delay: number): Promise<void> => {
+        setTimeout(async () => {
+          try {
+            await fetch(endpoint, {
+              method: "POST",
+              headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
+               },
+              body: JSON.stringify({ email })
+            });
+          } catch (err) {
+            console.error(`Error sending ${endpoint}:`, err);
+          }
+        }, delay);
+      };
+
+      scheduleEmail("/api/emails/send-favourite-on-github-email", 120_000);
+      scheduleEmail("/api/emails/send-feedback-email", 600_000);
     } 
-    // Rest of your existing code...
+    else if (res.status === 409) {
+      toast.warning("Esse e-mail já está cadastrado!", {
+        description: "Obrigado, seu e-mail já foi validado.",
+      });
+    }
+    else {
+      throw new Error("Unexpected response status");
+    }
   } catch (err: unknown) {
     setStatus("error");
     toast.error(err instanceof Error ? `Error: ${err.message}` : "Unknown error occurred");
