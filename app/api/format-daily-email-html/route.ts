@@ -76,9 +76,9 @@ function formatJobPostingToHtml(job: WithId<JobPosting>): string {
       
       <p><a class="apply-button" href="${job.linkVaga || '#'}" target="_blank">Ver vaga</a></p>
       
-      <p style="font-size: 0.9rem; color: #888; margin-top: 15px;">
-        Publicado em: ${publishedDate}
-      </p>
+      // <p style="font-size: 0.9rem; color: #888; margin-top: 15px;">
+      //   Publicado em: ${publishedDate}
+      // </p>
     </div>
   `;
 }
