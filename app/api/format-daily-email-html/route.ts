@@ -137,7 +137,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Build filters object
     const filters: { seniorityLevel?: string; stack?: string } = {};
-    console.log('FILTERS:', seniorityLevel, stack);
+    console.log('FILTER')
     if (seniorityLevel) filters.seniorityLevel = seniorityLevel;
     if (stack) filters.stack = stack;
 

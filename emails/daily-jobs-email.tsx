@@ -11,7 +11,6 @@ import {
 //   Hr,
   Img,
   Link,
-//   Button,
 } from '@react-email/components';
 import { JobPosting } from '@/app/api/post-a-job/route';
 import { WithId } from 'mongodb';
@@ -19,8 +18,8 @@ import { WithId } from 'mongodb';
 interface JobEmailProps {
   email: string;
   jobs: WithId<JobPosting>[];
-  additionalContent?: string;
   baseUrl?: string;
+  additionalContent?: string;
 }
 
 // Styles
@@ -178,12 +177,14 @@ const unsubscribeStyle = {
 const JobEmailTemplate: React.FC<JobEmailProps> = ({
   email,
   jobs,
-  additionalContent,
-  baseUrl = "https://vaguinhas.com.br"
+  baseUrl = "https://vaguinhas.com.br",
+  
 }) => {
   const formatDate = (date: string) => {
     return new Date(date).toLocaleDateString('pt-BR');
   };
+
+  const unsubscribeToken = email ? Buffer.from(email).toString('base64') : '';
 
   return (
     <Html>
@@ -195,7 +196,6 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
           <Section style={buttonContainerStyle}>
             <Link
               href={`${baseUrl}/feedback?email=${encodeURIComponent(email)}`}
-              target="_blank"
               style={feedbackButtonStyle}
             >
               Deixe-nos sua avaliação ⭐
@@ -203,7 +203,6 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
             
             <Link
               href={`${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}`}
-              target="_blank"
               style={hiredButtonStyle}
             >
               Consegui uma vaga! 🎉
@@ -215,7 +214,7 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
             <Img
               src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/vaguinhas-logo.png"
               alt="Vaguinhas Logo"
-              width="100"
+              width={100}
               style={logoStyle}
             />
           </Section>
@@ -224,15 +223,15 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
           <Section style={contentStyle}>
             {/* MongoDB Jobs */}
             {jobs.map((job) => (
-              <div key={job._id.toString()} style={jobContentStyle}>
+              <Section key={job._id.toString()} style={jobContentStyle}>
                 <div style={jobTitleContainerStyle}>
-                  <Heading style={jobTitleStyle}>{job.cargo}</Heading>
-                  <span style={featuredBadgeStyle}>
+                  <Heading as="h2" style={jobTitleStyle}>{job.cargo}</Heading>
+                  <Text style={featuredBadgeStyle}>
                     ⭐ vaga em destaque
-                  </span>
+                  </Text>
                 </div>
                 
-                <Heading style={companyNameStyle}>{job.nomeEmpresa}</Heading>
+                <Heading as="h3" style={companyNameStyle}>{job.nomeEmpresa}</Heading>
                 
                 <Text style={jobInfoStyle}>
                   <strong>Tipo:</strong> {job.tipoVaga}
@@ -252,7 +251,6 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
                 <Text>
                   <Link
                     href={job.linkVaga}
-                    target="_blank"
                     style={applyButtonStyle}
                   >
                     Ver vaga
@@ -262,16 +260,8 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
                 <Text style={publishedDateStyle}>
                   Publicado em: {formatDate(job.createdAt)}
                 </Text>
-              </div>
+              </Section>
             ))}
-
-            {/* Additional Content from POST request */}
-            {additionalContent && (
-              <div 
-                style={jobContentStyle}
-                dangerouslySetInnerHTML={{ __html: additionalContent }}
-              />
-            )}
           </Section>
 
           {/* Footer */}
@@ -287,7 +277,7 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
             
             <Text style={{ margin: '1rem 0' }}>
               Então considere fazer uma doação de qualquer valor através do PIX{' '}
-              <span style={pixHighlightStyle}>vaguinhas@vaguinhas.com.br</span>{' '}
+              <Text style={pixHighlightStyle}>vaguinhas@vaguinhas.com.br</Text>{' '}
               para ajudar a nos manter online!
             </Text>
             
@@ -298,8 +288,8 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
             <Img
               src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/qrcode-pix.png"
               alt="QR Code para doação PIX"
-              width="200"
-              height="200"
+              width={200}
+              height={200}
               style={qrCodeStyle}
             />
             
@@ -310,7 +300,7 @@ const JobEmailTemplate: React.FC<JobEmailProps> = ({
             {/* Unsubscribe Link */}
             <Text style={unsubscribeStyle}>
               <Link
-                href={`${baseUrl}/api/unsubscribe?email=${encodeURIComponent(btoa(email))}`}
+                href={`${baseUrl}/api/unsubscribe?email=${encodeURIComponent(unsubscribeToken)}`}
                 style={{ color: '#999', textDecoration: 'underline' }}
               >
                 Não quer mais receber nossos e-mails? Cancelar inscrição
