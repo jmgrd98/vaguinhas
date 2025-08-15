@@ -90,6 +90,7 @@ export default function Home() {
   const [email, setEmail] = useState("");
   const [seniorityLevel, setSeniorityLevel] = useState("");
   const [stack, setStack] = useState("");
+  const [linguagens, setLinguagens] = useState("");
   const [validationError, setValidationError] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [showConfetti, setShowConfetti] = useState(false);
@@ -136,7 +137,7 @@ export default function Home() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${process.env.NEXT_PUBLIC_JWT_SECRET}`,
         },
-        body: JSON.stringify({ email, seniorityLevel, stacks: [stack] }),
+        body: JSON.stringify({ email, seniorityLevel, stacks: [stack], linguagens }),
       });
 
       if (!res.ok) {
@@ -275,6 +276,46 @@ export default function Home() {
         className="w-full"
       />
       {validationError && <p className="text-red-500 text-sm w-full">{validationError}</p>}
+
+      <Select value={linguagens} onValueChange={setLinguagens}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Selecione a linguagem que você tem mais familiaridade (Opcional)" />
+        </SelectTrigger>
+        <SelectContent>
+          {[
+            // Front-end
+            "JavaScript",
+            "TypeScript",
+            "HTML",
+            "CSS",
+            "React",
+            "Vue",
+            "Angular",
+            "Svelte",
+            // Back-end
+            "Node.js",
+            "Python",
+            "Java",
+            "C#",
+            "PHP",
+            "Ruby",
+            "Go",
+            "C++",
+            "C",
+            "Rust",
+            "Kotlin",
+            "Scala",
+            "Elixir",
+            "Perl",
+            "Dart",
+            "Swift"
+          ].map(lang => (
+            <SelectItem key={lang} value={lang}>
+              {lang}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
 
       <Select value={stack} onValueChange={setStack} required>
         <SelectTrigger className="w-full">
