@@ -354,142 +354,128 @@ const EMAIL_TEMPLATE_BOTTOM = `
 </html>
 `;
 
-// Request body interface for better typing
-interface EmailRequestBody {
-  html?: string;
-  seniorityLevel?: string;
-  stack?: string;
-}
-
 // Response interface for better typing
 interface EmailResponse {
   email: string;
   html: string;
   mongoJobsCount: number;
-  hasPostContent: boolean;
-  appliedFilters: {
-    seniorityLevel?: ValidSeniorityLevel;
-    stack?: ValidStack;
-  };
+  bodyJobsCount: number;
+  appliedFilters: JobFilters;
+  totalJobs: number;
 }
 
 export async function POST(request: NextRequest): Promise<NextResponse<EmailResponse | { error: string }>> {
   try {
-    let rawHtml = '';
     const url = new URL(request.url);
-    const email = url.searchParams.get('email') || '';
     
-    // Extract filters from query parameters
-    let seniorityLevel = url.searchParams.get('seniorityLevel') || undefined;
-    let stack = url.searchParams.get('stack') || undefined;
-    
-    // Generate unsubscribe token from email
-    const unsubscribeToken = email ? btoa(email) : '';
-    console.log('UNSUBSCRIBE TOKEN', unsubscribeToken);
-    const contentType = request.headers.get('content-type') || '';
-
-    // Handle different content types for POST request body
-    if (contentType.includes('application/json')) {
-      const body: EmailRequestBody = await request.json();
-      rawHtml = body.html || '';
-      
-      // Extract filters from JSON body if not in query params
-      if (!seniorityLevel && body.seniorityLevel) {
-        seniorityLevel = body.seniorityLevel;
-      }
-      if (!stack && body.stack) {
-        stack = body.stack;
-      }
-    } else if (contentType.includes('application/x-www-form-urlencoded')) {
-      const formData = await request.formData();
-      rawHtml = formData.get('html') as string || '';
-      
-      // Extract filters from form data if not in query params
-      if (!seniorityLevel && formData.get('seniorityLevel')) {
-        seniorityLevel = formData.get('seniorityLevel') as string;
-      }
-      if (!stack && formData.get('stack')) {
-        stack = formData.get('stack') as string;
-      }
-    } else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
-      rawHtml = await request.text();
-    } else if (request.method === 'POST') {
+    // Extract required email parameter
+    const email = url.searchParams.get('email');
+    if (!email) {
       return NextResponse.json(
-        { error: 'Unsupported Media Type: Expected HTML, JSON, or form data' },
-        {
-          status: 415,
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'text/html, application/json, application/x-www-form-urlencoded'
-          },
-        }
+        { error: 'Missing required query parameter: email' },
+        { status: 400 }
       );
     }
 
-    // Build filters object with proper validation
+    // Extract optional filter parameters
+    const rawSeniorityLevel = url.searchParams.get('seniorityLevel');
+    const rawStack = url.searchParams.get('stack');
+    
+    // Debug logging for query parameters
+    console.log('QUERY PARAMETERS:', {
+      email,
+      seniorityLevel: rawSeniorityLevel,
+      stack: rawStack
+    });
+
+    // Validate and build filters
     const filters: JobFilters = {};
     
-    if (seniorityLevel && isValidSeniorityLevel(seniorityLevel)) {
-      filters.seniorityLevel = seniorityLevel;
+    if (rawSeniorityLevel) {
+      if (isValidSeniorityLevel(rawSeniorityLevel)) {
+        filters.seniorityLevel = rawSeniorityLevel;
+        console.log('✓ Valid seniorityLevel filter:', rawSeniorityLevel);
+      } else {
+        console.log('❌ Invalid seniorityLevel:', rawSeniorityLevel, 'Valid values:', VALID_SENIORITY_LEVELS);
+      }
     }
     
-    if (stack && isValidStack(stack)) {
-      filters.stack = stack;
+    if (rawStack) {
+      if (isValidStack(rawStack)) {
+        filters.stack = rawStack;
+        console.log('✓ Valid stack filter:', rawStack);
+      } else {
+        console.log('❌ Invalid stack:', rawStack, 'Valid values:', VALID_STACKS);
+      }
+    }
+
+    console.log('APPLIED FILTERS:', filters);
+
+    // Get HTML content from request body
+    const contentType = request.headers.get('content-type') || '';
+    let bodyHtml = '';
+
+    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+      bodyHtml = await request.text();
+      console.log('Received HTML body content:', bodyHtml.length, 'characters');
+    } else {
+      return NextResponse.json(
+        { error: 'Expected HTML content in request body (Content-Type: text/html)' },
+        { status: 400 }
+      );
     }
 
     // Get filtered jobs from MongoDB
     const mongoJobs = await getJobsFromMongo(Object.keys(filters).length > 0 ? filters : undefined);
-    console.log('Retrieved', mongoJobs.length, 'jobs from MongoDB with filters:', filters);
+    console.log('Retrieved', mongoJobs.length, 'jobs from MongoDB');
 
     // Format MongoDB jobs to HTML
     const mongoJobsHtml = mongoJobs.length > 0 ? 
       mongoJobs.map(job => formatJobPostingToHtml(job)).join('') : '';
 
-    // Process HTML from POST request
-    let htmlContent = rawHtml
-      .replace(/<h2/g, '<h2 class="job-title"')
-      .replace(/<h3/g, '<h3 class="company-name"')
-      .replace(/<p>/g, '<p class="job-description">')
-      .replace(/<a href/g, '<a class="job-link" href');
+    // Process HTML content from request body
+    let processedBodyHtml = bodyHtml;
+    if (bodyHtml.trim()) {
+      // Add CSS classes for consistent styling
+      processedBodyHtml = bodyHtml
+        .replace(/<h2/g, '<h2 class="job-title"')
+        .replace(/<h3/g, '<h3 class="company-name"')
+        .replace(/<p>/g, '<p class="job-description">')
+        .replace(/<a href/g, '<a class="job-link" href');
 
-    // Process links
-    const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
-    const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
+      // Process apply/company links
+      const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
+      const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
 
-    htmlContent = htmlContent.replace(
-      /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-      (match: string, href: string, text: string): string => {
-        if (applyPattern.test(text) || applyPattern.test(href)) {
-          return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
+      processedBodyHtml = processedBodyHtml.replace(
+        /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
+        (match: string, href: string, text: string): string => {
+          if (applyPattern.test(text) || applyPattern.test(href)) {
+            return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
+          }
+          if (companyPattern.test(text) || companyPattern.test(href)) {
+            return `<a class="company-link" href="${href}">Ver empresa</a>`;
+          }
+          return match;
         }
-        if (companyPattern.test(text) || companyPattern.test(href)) {
-          return `<a class="company-link" href="${href}">Ver empresa</a>`;
-        }
-        return match;
-      }
-    );
+      );
 
-    // Process paragraphs
-    htmlContent = htmlContent.replace(
-      /<p class="job-description">([\s\S]*?)<\/p>/g,
-      (_: string, content: string): string => {
-        const spaced = content.replace(/([^.\s]|^)\.([A-Z])/g, '$1. $2');
-        return spaced.trim().split(/(?<=\.)\s+/)
-          .filter(s => s.trim().length > 0)
-          .map(s => `<p class="job-description">${s.trim()}</p>`)
-          .join(' ');
-      }
-    );
+      // Wrap in job-content div for consistent styling
+      processedBodyHtml = `
+        <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+          ${processedBodyHtml}
+        </div>
+      `;
+    }
 
-    // Wrap POST request content
-    const postRequestContent = rawHtml.trim() ? `
-      <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
-        ${htmlContent}
-      </div>
-    ` : '';
+    // Calculate body job count (rough estimate based on job-like patterns)
+    const bodyJobCount = (bodyHtml.match(/<h2|<h3/g) || []).length;
 
-    // Combine MongoDB jobs + POST request content
-    const combinedContent = mongoJobsHtml + postRequestContent;
+    // Combine MongoDB jobs + processed body content
+    const combinedContent = mongoJobsHtml + processedBodyHtml;
+
+    // Generate unsubscribe token
+    const unsubscribeToken = email ? btoa(email) : '';
 
     // Build full email
     let fullEmail = `
@@ -509,21 +495,22 @@ export async function POST(request: NextRequest): Promise<NextResponse<EmailResp
       fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', `${baseUrl}/unsubscribe-success`);
     }
 
-    // Inline CSS
-    const inlined = juice(fullEmail);
+    // Inline CSS for email client compatibility
+    const inlinedHtml = juice(fullEmail);
 
-    const response: EmailResponse = { 
-      email, 
-      html: inlined,
+    const response: EmailResponse = {
+      email,
+      html: inlinedHtml,
       mongoJobsCount: mongoJobs.length,
-      hasPostContent: rawHtml.trim().length > 0,
-      appliedFilters: filters
+      bodyJobsCount: bodyJobCount,
+      appliedFilters: filters,
+      totalJobs: mongoJobs.length + bodyJobCount
     };
 
     return NextResponse.json(response, { status: 200 });
     
   } catch (error: unknown) {
-    console.error('Error processing email:', error);
+    console.error('Error processing daily email:', error);
     
     const errorMessage = error instanceof Error ? 
       error.message : 
