@@ -1,11 +1,87 @@
 import { NextRequest, NextResponse } from 'next/server';
 import juice from 'juice';
+import { MongoClient, Db, Collection, WithId, Filter } from 'mongodb';
 
+// MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI!;
+const DB_NAME = process.env.DB_NAME;
+
+let cachedClient: MongoClient | null = null;
+let cachedDb: Db | null = null;
+
+// Types from the job posting route
+type Stack = 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'dados' | 'design';
+type SeniorityLevel = 'junior' | 'pleno' | 'senior';
+type JobStatus = 'pending' | 'approved' | 'rejected';
+type Currency = 'BRL' | 'USD' | 'EUR';
+type JobType = 'nacional' | 'internacional';
+
+interface JobPosting {
+  linkVaga: string;
+  nomeEmpresa: string;
+  cambio: Currency;
+  tipoVaga: JobType;
+  stack: Stack;
+  seniorityLevel: SeniorityLevel;
+  cargo: string;
+  descricao: string;
+  createdAt: string;
+  status: JobStatus;
+  publishedAt?: string;
+  updatedAt: string;
+}
+
+interface JobQuery extends Filter<JobPosting> {
+  status: JobStatus;
+  createdAt: { $gte: string };
+  stack?: Stack;
+  seniorityLevel?: SeniorityLevel;
+}
+
+interface DatabaseConnection {
+  client: MongoClient;
+  db: Db;
+}
+
+interface EmailResponse {
+  email: string;
+  html: string;
+  jobsCount: number;
+  message: string;
+}
 
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
 
-function generateEmailTemplateTop(email: string) {
+// Type guards
+function isValidStack(stack: string): stack is Stack {
+  return ['frontend', 'backend', 'fullstack', 'mobile', 'dados', 'design'].includes(stack);
+}
+
+function isValidSeniorityLevel(level: string): level is SeniorityLevel {
+  return ['junior', 'pleno', 'senior'].includes(level);
+}
+
+// Database connection function
+async function connectToDatabase(): Promise<DatabaseConnection> {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  if (!MONGODB_URI) {
+    throw new Error('Please define the MONGODB_URI environment variable');
+  }
+
+  const client = await MongoClient.connect(MONGODB_URI);
+  const db = client.db(DB_NAME);
+
+  cachedClient = client;
+  cachedDb = db;
+
+  return { client, db };
+}
+
+function generateEmailTemplateTop(email: string): string {
   return `
 <!DOCTYPE html>
 <html>
@@ -53,16 +129,26 @@ function generateEmailTemplateTop(email: string) {
     }
     
     /* Job content styles */
+    .job-content {
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      border: 1px solid #e5e5e5;
+      border-radius: 8px;
+      background-color: #fafafa;
+    }
+    
     .job-content h2 {
       color: #333333;
       font-size: 24px;
       margin-bottom: 10px;
+      margin-top: 0;
     }
     
     .job-content h3 {
       color: #555555;
       font-size: 18px;
       margin-top: 0;
+      margin-bottom: 15px;
     }
     
     .job-content p {
@@ -80,46 +166,51 @@ function generateEmailTemplateTop(email: string) {
       text-decoration: underline;
     }
     
-    .job-content .salary {
-      font-weight: bold;
-      color: #222222;
-      margin: 1.5rem 0;
+    .job-content .job-meta {
+      display: flex;
+      gap: 1rem;
+      margin: 1rem 0;
+      flex-wrap: wrap;
     }
     
-    .job-content .apply-button, .hired-button, .feedback-button {
+    .job-content .job-tag {
+      background-color: #e3f2fd;
+      color: #1976d2;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    
+    .job-content .apply-button {
       display: inline-block;
-      padding: 10px 16px;
+      padding: 12px 20px;
       background-color: #1a73e8;
       color: #ffffff;
       text-decoration: none;
-      border-radius: 4px;
+      border-radius: 6px;
       font-weight: bold;
       margin: 1rem 0;
+    }
+    
+    .job-content .apply-button:hover {
+      background-color: #1557b0;
+      text-decoration: none;
     }
     
     .hired-button {
       background-color: #4CAF50;
       border-radius: 20px;
+      padding: 10px 16px;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: bold;
     }
     
     .hired-button:hover {
       background-color: #3d8b40;
       text-decoration: none;
-    }
-    
-    .hired-button-container {
-      text-align: right;
-      padding: 20px 20px 0;
-    }
-    
-    .job-content .company-link {
-      display: inline-block;
-      margin: 8px 0;
-      color: #1a73e8;
-    }
-    
-    .apply-button, .company-link {
-      cursor: pointer;
     }
 
     .top-buttons-container {
@@ -127,20 +218,35 @@ function generateEmailTemplateTop(email: string) {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 20px 20px 0;
     }
 
-      .feedback-button {
-        display: inline-block;
-        background-color: #6c63ff;
-        color: #ffffff;
-        text-decoration: none;
-        font-weight: bold;
-      }
-      
-      .feedback-button:hover {
-        background-color: #564fee;
-        text-decoration: none;
-      }
+    .feedback-button {
+      display: inline-block;
+      background-color: #6c63ff;
+      color: #ffffff;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 10px 16px;
+      border-radius: 4px;
+    }
+    
+    .feedback-button:hover {
+      background-color: #564fee;
+      text-decoration: none;
+    }
+
+    .jobs-intro {
+      text-align: center;
+      margin: 2rem 0;
+      color: #555;
+    }
+
+    .no-jobs {
+      text-align: center;
+      padding: 2rem;
+      color: #666;
+    }
     
     /* Media queries */
     @media only screen and (max-width: 600px) {
@@ -160,14 +266,16 @@ function generateEmailTemplateTop(email: string) {
         max-width: 180px !important;
       }
       
-      .hired-button-container {
+      .top-buttons-container {
+        flex-direction: column;
+        gap: 1rem;
         text-align: center;
         padding: 15px 15px 0;
       }
-      
-      .hired-button {
-        display: block;
-        margin: 0 auto;
+
+      .job-content .job-meta {
+        flex-direction: column;
+        gap: 0.5rem;
       }
     }
   </style>
@@ -177,22 +285,20 @@ function generateEmailTemplateTop(email: string) {
     <tr>
       <td align="center">
         <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
-          <!-- Hired button row -->
-         
-         <tr>
+          <!-- Buttons row -->
+          <tr>
             <td class="top-buttons-container">
-              <!-- New Feedback Button -->
+              <!-- Feedback Button -->
               <a href="${baseUrl}/feedback?email=${encodeURIComponent(email)}" target="_blank" class="feedback-button">
                 Deixe-nos sua avaliação ⭐
               </a>
               
-              <!-- Existing Hired Button -->
+              <!-- Hired Button -->
               <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">
                 Consegui uma vaga! 🎉
               </a>
             </td>
           </tr>
-       
           
           <!-- Logo row -->
           <tr>
@@ -254,87 +360,163 @@ const EMAIL_TEMPLATE_BOTTOM = `
 </html>
 `;
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+// Function to get stack display name
+function getStackDisplayName(stack: Stack): string {
+  const stackNames: Record<Stack, string> = {
+    frontend: 'Frontend',
+    backend: 'Backend', 
+    fullstack: 'Fullstack',
+    mobile: 'Mobile',
+    dados: 'Dados',
+    design: 'Design'
+  };
+  return stackNames[stack];
+}
+
+// Function to get seniority display name
+function getSeniorityDisplayName(level: SeniorityLevel): string {
+  const seniorityNames: Record<SeniorityLevel, string> = {
+    junior: 'Júnior',
+    pleno: 'Pleno',
+    senior: 'Sênior'
+  };
+  return seniorityNames[level];
+}
+
+// Function to escape HTML
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Function to format job description safely
+function formatJobDescription(description: string): string {
+  return description
+    .split('\n')
+    .map(paragraph => {
+      const trimmed = paragraph.trim();
+      return trimmed ? `<p>${escapeHtml(trimmed)}</p>` : '';
+    })
+    .filter(p => p.length > 0)
+    .join('');
+}
+
+// Function to format job into HTML
+function formatJobToHtml(job: WithId<JobPosting>): string {
+  const stackName = getStackDisplayName(job.stack);
+  const seniorityName = getSeniorityDisplayName(job.seniorityLevel);
+  const currencySymbol = job.cambio === 'BRL' ? 'R$' : job.cambio === 'USD' ? '$' : '€';
+  const typeLabel = job.tipoVaga === 'internacional' ? 'Internacional' : 'Nacional';
+
+  return `
+    <div class="job-content">
+      <h2>${escapeHtml(job.cargo)}</h2>
+      <h3>${escapeHtml(job.nomeEmpresa)}</h3>
+      
+      <div class="job-meta">
+        <span class="job-tag">${stackName}</span>
+        <span class="job-tag">${seniorityName}</span>
+        <span class="job-tag">${typeLabel}</span>
+        ${job.cambio !== 'BRL' ? `<span class="job-tag">${currencySymbol}</span>` : ''}
+      </div>
+      
+      <div class="job-description">
+        ${formatJobDescription(job.descricao)}
+      </div>
+      
+      <a href="${escapeHtml(job.linkVaga)}" target="_blank" class="apply-button">
+        Ver Vaga Completa
+      </a>
+    </div>
+  `;
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse<EmailResponse | { error: string }>> {
   try {
-    let rawHtml: string;
-    const email = new URL(request.url).searchParams.get('email') || '';
+    const url = new URL(request.url);
+    const email = url.searchParams.get('email') || '';
     
     // Generate unsubscribe token from email
-    // (You'll need to implement proper token generation in your subscription flow)
-    const unsubscribeToken = email ? btoa(email) : ''; // Simple base64 encoding for demo
-    console.log('UNSUBSCRIBE TOKEN', unsubscribeToken)
-    const contentType = request.headers.get('content-type') || '';
+    const unsubscribeToken = email ? btoa(email) : '';
+    console.log('UNSUBSCRIBE TOKEN', unsubscribeToken);
 
+    // Connect to MongoDB
+    const { db } = await connectToDatabase();
+    const collection: Collection<JobPosting> = db.collection<JobPosting>('jobs');
 
-   // Handle HTML content
-    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
-      rawHtml = await request.text();
-    } 
-    // Unsupported media type
-    else {
-      return new NextResponse('Unsupported Media Type: Expected HTML', {
-        status: 415,
-        headers: { 
-          'Content-Type': 'text/plain',
-          'Accept': 'text/html'
-        },
-      });
+    // Get query parameters for filtering
+    const { searchParams } = url;
+    const days = Math.min(Math.max(1, parseInt(searchParams.get('days') || '1', 10)), 30); // 1-30 days
+    const limit = Math.min(Math.max(1, parseInt(searchParams.get('limit') || '20', 10)), 100); // 1-100 jobs
+    const stackParam = searchParams.get('stack');
+    const seniorityParam = searchParams.get('seniorityLevel');
+
+    // Validate optional parameters
+    const stack = stackParam && isValidStack(stackParam) ? stackParam : undefined;
+    const seniorityLevel = seniorityParam && isValidSeniorityLevel(seniorityParam) ? seniorityParam : undefined;
+
+    // Calculate date threshold
+    const dateThreshold = new Date();
+    dateThreshold.setDate(dateThreshold.getDate() - days);
+
+    // Build query with proper typing
+    const query: JobQuery = {
+      status: 'approved' as const,
+      createdAt: { $gte: dateThreshold.toISOString() }
+    };
+
+    if (stack) {
+      query.stack = stack;
+    }
+    if (seniorityLevel) {
+      query.seniorityLevel = seniorityLevel;
     }
 
-    // Process HTML
-    let htmlContent = rawHtml
-      .replace(/<h2/g, '<h2 class="job-title"')
-      .replace(/<h3/g, '<h3 class="company-name"')
-      .replace(/<p>/g, '<p class="job-description">')
-      .replace(/<a href/g, '<a class="job-link" href');
+    // Fetch jobs from MongoDB
+    const jobs = await collection
+      .find(query as Filter<JobPosting>)
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray() as WithId<JobPosting>[];
 
-    // Process links
-    const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
-    const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
+    console.log(`Found ${jobs.length} jobs for email`);
 
-    htmlContent = htmlContent.replace(
-      /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-      (match: string, href: string, text: string): string => {
-        if (applyPattern.test(text) || applyPattern.test(href)) {
-          return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
-        }
-        if (companyPattern.test(text) || companyPattern.test(href)) {
-          return `<a class="company-link" href="${href}">Ver empresa</a>`;
-        }
-        return match;
-      }
-    );
-
-    // Process paragraphs
-    htmlContent = htmlContent.replace(
-      /<p class="job-description">([\s\S]*?)<\/p>/g,
-      (_: string, content: string): string => {
-        const spaced = content.replace(/([^.\s]|^)\.([A-Z])/g, '$1. $2');
-        return spaced.trim().split(/(?<=\.)\s+/)
-          .filter(s => s.trim().length > 0)
-          .map(s => `<p class="job-description">${s.trim()}</p>`)
-          .join(' ');
-      }
-    );
-
-    // Wrap content
-    const styledContent = `
-      <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
-        ${htmlContent}
-      </div>
-    `;
+    // Generate jobs HTML content
+    let jobsHtml = '';
+    
+    if (jobs.length === 0) {
+      jobsHtml = `
+        <div class="no-jobs">
+          <h2>Nenhuma vaga encontrada hoje</h2>
+          <p>Não há novas vagas aprovadas para hoje. Tente novamente amanhã!</p>
+        </div>
+      `;
+    } else {
+      // Add intro text
+      const dateStr = new Date().toLocaleDateString('pt-BR');
+      const jobWord = jobs.length === 1 ? 'vaga' : 'vagas';
+      
+      jobsHtml = `
+        <div class="jobs-intro">
+          <h2>Vagas do Dia - ${dateStr}</h2>
+          <p>Encontramos ${jobs.length} ${jobWord} para você hoje!</p>
+        </div>
+      `;
+      
+      // Add each job
+      jobsHtml += jobs.map(formatJobToHtml).join('\n');
+    }
 
     // Build full email
     let fullEmail = `
       ${generateEmailTemplateTop(email)}
-      ${styledContent}
+      ${jobsHtml}
       ${EMAIL_FOOTER}
       ${EMAIL_TEMPLATE_BOTTOM}
     `;
     
     // Add unsubscribe link
-    // Then in the POST handler:
-     // Add unsubscribe link
     if (unsubscribeToken) {
       fullEmail = fullEmail.replace(
         "{{UNSUBSCRIBE_LINK}}", 
@@ -347,13 +529,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     // Inline CSS
     const inlined = juice(fullEmail);
 
-    return NextResponse.json({ email, html: inlined }, { status: 200 });
+    const response: EmailResponse = { 
+      email, 
+      html: inlined, 
+      jobsCount: jobs.length,
+      message: `Email generated with ${jobs.length} jobs`
+    };
 
-    // return new NextResponse(inlined, {
-    //   status: 200,
-    //   headers: { 'Content-Type': 'text/html' },
-    // });
-    
+    return NextResponse.json(response, { status: 200 });
+
   } catch (error: unknown) {
     console.error('Error processing email:', error);
     
@@ -361,29 +545,69 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       error.message : 
       'Unknown error during email processing';
     
-    return new NextResponse(`Error: ${errorMessage}`, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    return NextResponse.json(
+      { error: errorMessage },
+      { status: 500 }
+    );
   }
 }
 
-// GET handler (simplificado)
-export async function GET(): Promise<NextResponse> {
-  const usage = `
-    <!DOCTYPE html>
-    <html>
-    <head><title>Email Formatting API</title></head>
-    <body>
-      <h1>Usage Instructions</h1>
-      <p>POST JSON: { html: string, unsubscribeToken: string }</p>
-      <p>Or POST HTML with token in header (X-Unsubscribe-Token) or query param (?token=)</p>
-    </body>
-    </html>
-  `;
+// GET handler
+export async function GET(request: NextRequest): Promise<NextResponse> {
+  try {
+    const { searchParams } = new URL(request.url);
+    const email = searchParams.get('email') || 'test@example.com';
+    
+    // Create a new URL with the email parameter
+    const postUrl = new URL(request.url);
+    postUrl.searchParams.set('email', email);
+    
+    // Create a POST request to ourselves to generate the email
+    const postRequest = new NextRequest(postUrl.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({})
+    });
+    
+    // Generate the email
+    const response = await POST(postRequest);
+    const data = await response.json() as EmailResponse | { error: string };
+    
+    if ('html' in data) {
+      return new NextResponse(data.html, {
+        status: 200,
+        headers: { 'Content-Type': 'text/html' },
+      });
+    }
+    
+    return NextResponse.json(data, { status: response.status });
+    
+  } catch (error) {
+    console.error('Error in GET handler:', error);
+    
+    const usage = `
+      <!DOCTYPE html>
+      <html>
+      <head><title>Daily Email API</title></head>
+      <body>
+        <h1>Daily Email API</h1>
+        <p>POST to generate daily email with jobs from database</p>
+        <p>Query parameters:</p>
+        <ul>
+          <li>email: recipient email</li>
+          <li>days: number of days to look back (1-30, default: 1)</li>
+          <li>limit: max number of jobs (1-100, default: 20)</li>
+          <li>stack: filter by stack (frontend|backend|fullstack|mobile|dados|design)</li>
+          <li>seniorityLevel: filter by seniority (junior|pleno|senior)</li>
+        </ul>
+        <p>Example: GET /api/format-daily-email?email=test@example.com&days=2&stack=frontend</p>
+      </body>
+      </html>
+    `;
 
-  return new NextResponse(usage, {
-    status: 200,
-    headers: { 'Content-Type': 'text/html' },
-  });
+    return new NextResponse(usage, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html' },
+    });
+  }
 }
