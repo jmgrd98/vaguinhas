@@ -67,18 +67,10 @@ function formatJobPostingToHtml(job: WithId<JobPosting>): string {
       <h2 class="job-title" style="margin: 0 0 10px 0;">${job.cargo || 'Cargo não especificado'}</h2>
       <h3 class="company-name">${job.nomeEmpresa || 'Empresa não especificada'}</h3>
       
-      // <p class="job-description"><strong>Tipo:</strong> ${job.tipoVaga || 'Não especificado'}</p>
-      // <p class="job-description"><strong>Nível:</strong> ${job.seniorityLevel || 'Não especificado'}</p>
-      // <p class="job-description"><strong>Stack:</strong> ${job.stack || 'Não especificado'}</p>
-      // <p class="job-description"><strong>Câmbio:</strong> ${job.cambio || 'Não especificado'}</p>
-      
       <p class="job-description">${job.descricao || 'Descrição não disponível'}</p>
       
       <p><a class="apply-button" href="${job.linkVaga || '#'}" target="_blank">Ver vaga</a></p>
       
-      // <p style="font-size: 0.9rem; color: #888; margin-top: 15px;">
-      //   Publicado em: ${publishedDate}
-      // </p>
     </div>
   `;
 }
