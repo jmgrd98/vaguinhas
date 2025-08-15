@@ -59,12 +59,12 @@ function formatJobPostingToHtml(job: WithId<JobPosting>): string {
 
   return `
     <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <h2 class="job-title" style="margin: 0;">${job.cargo || 'Cargo não especificado'}</h2>
-        <span class="featured-badge" style="background-color: #ffd700; border: 1px solid #333; color: #333; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+      <div style="margin-bottom: 8px;">
+        <span class="featured-badge" style="background-color: white; border: 1px solid black; border-radius: 8px; color: #333; padding: 2px 6px; border-radius: 8px; font-size: 0.7rem; font-weight: bold; display: inline-block;">
           ⭐ vaga em destaque
         </span>
       </div>
+      <h2 class="job-title" style="margin: 0 0 10px 0;">${job.cargo || 'Cargo não especificado'}</h2>
       <h3 class="company-name">${job.nomeEmpresa || 'Empresa não especificada'}</h3>
       
       <p class="job-description"><strong>Tipo:</strong> ${job.tipoVaga || 'Não especificado'}</p>
