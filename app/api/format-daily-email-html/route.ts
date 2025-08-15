@@ -1,42 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { render } from '@react-email/render';
-import { Collection } from 'mongodb';
+import juice from 'juice';
+import { Collection, WithId } from 'mongodb';
 import { JobPosting } from '../post-a-job/route';
 import { connectToDatabase } from '@/lib/mongodb';
-import JobEmailTemplate from '@/emails/daily-jobs-email';
-
-// Type definitions
-type Stack = 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'dados' | 'design';
-type SeniorityLevel = 'junior' | 'pleno' | 'senior';
 
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
 
-// Function to validate seniority level
-function isValidSeniorityLevel(level: string): level is SeniorityLevel {
-  return ['junior', 'pleno', 'senior'].includes(level);
+// Define valid values as const arrays for better type safety
+const VALID_SENIORITY_LEVELS = ['junior', 'pleno', 'senior'] as const;
+const VALID_STACKS = ['frontend', 'backend', 'fullstack', 'mobile', 'dados', 'design'] as const;
+
+// Create types from the const arrays
+type ValidSeniorityLevel = typeof VALID_SENIORITY_LEVELS[number];
+type ValidStack = typeof VALID_STACKS[number];
+
+// Type guard functions
+const isValidSeniorityLevel = (value: string): value is ValidSeniorityLevel => {
+  return VALID_SENIORITY_LEVELS.includes(value as ValidSeniorityLevel);
+};
+
+const isValidStack = (value: string): value is ValidStack => {
+  return VALID_STACKS.includes(value as ValidStack);
+};
+
+// Filter interface
+interface JobFilters {
+  seniorityLevel?: ValidSeniorityLevel;
+  stack?: ValidStack;
 }
 
-// Function to validate stack
-function isValidStack(stack: string): stack is Stack {
-  return ['frontend', 'backend', 'fullstack', 'mobile', 'dados', 'design'].includes(stack);
-}
-
-
-// Updated function to accept filter parameters
-async function getJobsFromMongo(filters?: { seniorityLevel?: string; stack?: string }) {
+// Updated function to accept filter parameters with proper typing
+async function getJobsFromMongo(filters?: JobFilters): Promise<WithId<JobPosting>[]> {
   const { db } = await connectToDatabase();
   const collection: Collection<JobPosting> = db.collection<JobPosting>('jobs');
   
   // Build query object based on provided filters
   const query: Partial<JobPosting> = {};
   
-  if (filters?.seniorityLevel && isValidSeniorityLevel(filters.seniorityLevel)) {
-    query.seniorityLevel = filters.seniorityLevel as SeniorityLevel;
+  if (filters?.seniorityLevel) {
+    query.seniorityLevel = filters.seniorityLevel;
   }
   
-  if (filters?.stack && isValidStack(filters.stack)) {
-    query.stack = filters.stack as Stack;
+  if (filters?.stack) {
+    query.stack = filters.stack;
   }
   
   console.log('MongoDB query filters:', query);
@@ -44,53 +51,331 @@ async function getJobsFromMongo(filters?: { seniorityLevel?: string; stack?: str
   return collection.find(query).toArray();
 }
 
-// Function to process HTML content from POST request
-function processPostHtmlContent(rawHtml: string): string {
-  let htmlContent = rawHtml
-    .replace(/<h2/g, '<h2 class="job-title"')
-    .replace(/<h3/g, '<h3 class="company-name"')
-    .replace(/<p>/g, '<p class="job-description">')
-    .replace(/<a href/g, '<a class="job-link" href');
+function formatJobPostingToHtml(job: WithId<JobPosting>): string {
+  // Safely handle potential undefined date
+  const publishedDate = job.createdAt 
+    ? new Date(job.createdAt).toLocaleDateString('pt-BR')
+    : 'Data não disponível';
 
-  // Process links
-  const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
-  const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
-
-  htmlContent = htmlContent.replace(
-    /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
-    (match: string, href: string, text: string): string => {
-      if (applyPattern.test(text) || applyPattern.test(href)) {
-        return `<p><a class="apply-button" href="${href}" style="background-color: #1a73e8; color: #ffffff; padding: 10px 16px; border-radius: 4px; text-decoration: none; font-weight: bold; display: inline-block; margin: 1rem 0;">Ver vaga</a></p>`;
-      }
-      if (companyPattern.test(text) || companyPattern.test(href)) {
-        return `<a class="company-link" href="${href}" style="display: inline-block; margin: 8px 0; color: #1a73e8;">Ver empresa</a>`;
-      }
-      return match;
-    }
-  );
-
-  // Process paragraphs
-  htmlContent = htmlContent.replace(
-    /<p class="job-description">([\s\S]*?)<\/p>/g,
-    (_: string, content: string): string => {
-      const spaced = content.replace(/([^.\s]|^)\.([A-Z])/g, '$1. $2');
-      return spaced.trim().split(/(?<=\.)\s+/)
-        .filter(s => s.trim().length > 0)
-        .map(s => `<p class="job-description" style="color: #444444; line-height: 1.5; margin: 16px 0;">${s.trim()}</p>`)
-        .join(' ');
-    }
-  );
-
-  return htmlContent.trim() ? `
-    <div style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-      ${htmlContent}
+  return `
+    <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <h2 class="job-title" style="margin: 0;">${job.cargo || 'Cargo não especificado'}</h2>
+        <span class="featured-badge" style="background-color: #ffd700; border: 1px solid #333; color: #333; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+          ⭐ vaga em destaque
+        </span>
+      </div>
+      <h3 class="company-name">${job.nomeEmpresa || 'Empresa não especificada'}</h3>
+      
+      <p class="job-description"><strong>Tipo:</strong> ${job.tipoVaga || 'Não especificado'}</p>
+      <p class="job-description"><strong>Nível:</strong> ${job.seniorityLevel || 'Não especificado'}</p>
+      <p class="job-description"><strong>Stack:</strong> ${job.stack || 'Não especificado'}</p>
+      <p class="job-description"><strong>Câmbio:</strong> ${job.cambio || 'Não especificado'}</p>
+      
+      <p class="job-description">${job.descricao || 'Descrição não disponível'}</p>
+      
+      <p><a class="apply-button" href="${job.linkVaga || '#'}" target="_blank">Ver vaga</a></p>
+      
+      <p style="font-size: 0.9rem; color: #888; margin-top: 15px;">
+        Publicado em: ${publishedDate}
+      </p>
     </div>
-  ` : '';
+  `;
 }
 
-export async function POST(request: NextRequest): Promise<NextResponse> {
+function generateEmailTemplateTop(email: string): string {
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vagas do Dia</title>
+  <style>
+    /* Base styles */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+      font-family: Arial, sans-serif;
+      -webkit-text-size-adjust: 100%;
+    }
+    
+    .container {
+      width: 600px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+    }
+    
+    .content {
+      padding: 0 30px 20px;
+    }
+    
+    .footer-content {
+      margin-top: 3rem;
+      padding: 1.5rem;
+      border-top: 1px solid #eaeaea;
+      text-align: center;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    
+    .qr-code {
+      max-width: 200px;
+      margin: 0 auto;
+      display: block;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+    
+    /* Job content styles */
+    .job-content h2 {
+      color: #333333;
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    
+    .job-content h3 {
+      color: #555555;
+      font-size: 18px;
+      margin-top: 0;
+    }
+    
+    .job-content p {
+      color: #444444;
+      line-height: 1.5;
+      margin: 16px 0;
+    }
+    
+    .job-content a {
+      color: #1a73e8;
+      text-decoration: none;
+    }
+    
+    .job-content a:hover {
+      text-decoration: underline;
+    }
+    
+    .job-content .salary {
+      font-weight: bold;
+      color: #222222;
+      margin: 1.5rem 0;
+    }
+    
+    .job-content .apply-button, .hired-button, .feedback-button {
+      display: inline-block;
+      padding: 10px 16px;
+      background-color: #1a73e8;
+      color: #ffffff;
+      text-decoration: none;
+      border-radius: 4px;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+    
+    .hired-button {
+      background-color: #4CAF50;
+      border-radius: 20px;
+    }
+    
+    .hired-button:hover {
+      background-color: #3d8b40;
+      text-decoration: none;
+    }
+    
+    .hired-button-container {
+      text-align: right;
+      padding: 20px 20px 0;
+    }
+    
+    .job-content .company-link {
+      display: inline-block;
+      margin: 8px 0;
+      color: #1a73e8;
+    }
+    
+    .apply-button, .company-link {
+      cursor: pointer;
+    }
+
+    .top-buttons-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+      .feedback-button {
+        display: inline-block;
+        background-color: #6c63ff;
+        color: #ffffff;
+        text-decoration: none;
+        font-weight: bold;
+      }
+      
+      .feedback-button:hover {
+        background-color: #564fee;
+        text-decoration: none;
+      }
+
+    .featured-badge {
+      background-color: #ffd700;
+      color: #333;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .section-title {
+      color: #333333;
+      font-size: 28px;
+      margin: 30px 0 20px 0;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #1a73e8;
+      text-align: center;
+    }
+    
+    /* Media queries */
+    @media only screen and (max-width: 600px) {
+      .container {
+        width: 100% !important;
+      }
+      
+      .content {
+        padding: 15px !important;
+      }
+      
+      .footer-content {
+        padding: 15px !important;
+      }
+      
+      .qr-code {
+        max-width: 180px !important;
+      }
+      
+      .hired-button-container {
+        text-align: center;
+        padding: 15px 15px 0;
+      }
+      
+      .hired-button {
+        display: block;
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color: #f9f9f9; padding: 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" class="container" cellpadding="0" cellspacing="0" border="0" width="600">
+          <!-- Hired button row -->
+         
+         <tr>
+            <td class="top-buttons-container">
+              <!-- New Feedback Button -->
+              <a href="${baseUrl}/feedback?email=${encodeURIComponent(email)}" target="_blank" class="feedback-button">
+                Deixe-nos sua avaliação ⭐
+              </a>
+              
+              <!-- Existing Hired Button -->
+              <a href="${baseUrl}/consegui-uma-vaga?email=${encodeURIComponent(email)}" target="_blank" class="hired-button">
+                Consegui uma vaga! 🎉
+              </a>
+            </td>
+          </tr>
+       
+          
+          <!-- Logo row -->
+          <tr>
+            <td align="center" style="padding: 30px 20px 20px;">
+              <img src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/vaguinhas-logo.png" alt="Vaguinhas Logo" width="100" height="auto" style="display: block; margin: 0 auto 20px;" />
+            </td>
+          </tr>
+          
+          <!-- Content row -->
+          <tr>
+            <td class="content">
+`;
+}
+
+const EMAIL_FOOTER = `
+  <div class="footer-content" style="margin-top: 3rem; padding: 1.5rem; border-top: 1px solid #eaeaea; text-align: center; font-family: Arial, sans-serif; color: #333;">
+    <p>Essas foram as vaguinhas do dia! Sinta-se livre para responder a esse e-mail se você tiver qualquer dúvida, ou nos dizendo se você conseguiu a vaga. 😊</p>
+    
+    <p style="margin-top: 1.5rem; font-weight: bold; font-size: 1.1rem;">Gostou das vagas?</p>
+    
+    <p style="margin: 1rem 0;">
+      Então considere fazer uma doação de qualquer valor através do PIX 
+      <strong style="background-color: #f0f0f0; padding: 0.2rem 0.5rem; border-radius: 4px;">vaguinhas@vaguinhas.com.br</strong> 
+      para ajudar a nos manter online!
+    </p>
+    
+    <p style="margin-bottom: 1rem;">Ou escaneie o QR Code abaixo:</p>
+    
+    <img 
+      src="https://raw.githubusercontent.com/jmgrd98/vaguinhas/main/public/qrcode-pix.png" 
+      alt="QR Code para doação PIX" 
+      width="200"
+      height="200"
+      class="qr-code"
+      style="max-width: 200px; margin: 0 auto; display: block; border: 1px solid #ddd; border-radius: 8px;"
+    >
+    
+    <p style="color: #888; font-size: 0.9rem; margin-top: 0.5rem;">
+      Se o QR Code não aparecer, utilize o endereço PIX: vaguinhas@vaguinhas.com.br
+    </p>
+
+    <!-- Link de unsubscribe -->
+    <p style="text-align: center; font-size: 0.8rem; color: #999; margin-top: 1.5rem;">
+      <a href="{{UNSUBSCRIBE_LINK}}" style="color: #999; text-decoration: underline;">
+        Não quer mais receber nossos e-mails? Cancelar inscrição
+      </a>
+    </p>
+  </div>
+`;
+
+const EMAIL_TEMPLATE_BOTTOM = `
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+// Request body interface for better typing
+interface EmailRequestBody {
+  html?: string;
+  seniorityLevel?: string;
+  stack?: string;
+}
+
+// Response interface for better typing
+interface EmailResponse {
+  email: string;
+  html: string;
+  mongoJobsCount: number;
+  hasPostContent: boolean;
+  appliedFilters: {
+    seniorityLevel?: ValidSeniorityLevel;
+    stack?: ValidStack;
+  };
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse<EmailResponse | { error: string }>> {
   try {
-    let rawHtml: string;
+    let rawHtml = '';
     const url = new URL(request.url);
     const email = url.searchParams.get('email') || '';
     
@@ -98,11 +383,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     let seniorityLevel = url.searchParams.get('seniorityLevel') || undefined;
     let stack = url.searchParams.get('stack') || undefined;
     
+    // Generate unsubscribe token from email
+    const unsubscribeToken = email ? btoa(email) : '';
+    console.log('UNSUBSCRIBE TOKEN', unsubscribeToken);
     const contentType = request.headers.get('content-type') || '';
 
     // Handle different content types for POST request body
     if (contentType.includes('application/json')) {
-      const body = await request.json();
+      const body: EmailRequestBody = await request.json();
       rawHtml = body.html || '';
       
       // Extract filters from JSON body if not in query params
@@ -125,44 +413,114 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       }
     } else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
       rawHtml = await request.text();
-    } else {
-      return new NextResponse('Unsupported Media Type: Expected HTML, JSON, or form data', {
-        status: 415,
-        headers: { 
-          'Content-Type': 'text/plain',
-          'Accept': 'text/html, application/json, application/x-www-form-urlencoded'
-        },
-      });
+    } else if (request.method === 'POST') {
+      return NextResponse.json(
+        { error: 'Unsupported Media Type: Expected HTML, JSON, or form data' },
+        {
+          status: 415,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'text/html, application/json, application/x-www-form-urlencoded'
+          },
+        }
+      );
     }
 
-    // Build filters object
-    const filters: { seniorityLevel?: string; stack?: string } = {};
-    console.log('FILTER')
-    if (seniorityLevel) filters.seniorityLevel = seniorityLevel;
-    if (stack) filters.stack = stack;
+    // Build filters object with proper validation
+    const filters: JobFilters = {};
+    
+    if (seniorityLevel && isValidSeniorityLevel(seniorityLevel)) {
+      filters.seniorityLevel = seniorityLevel;
+    }
+    
+    if (stack && isValidStack(stack)) {
+      filters.stack = stack;
+    }
 
     // Get filtered jobs from MongoDB
     const mongoJobs = await getJobsFromMongo(Object.keys(filters).length > 0 ? filters : undefined);
     console.log('Retrieved', mongoJobs.length, 'jobs from MongoDB with filters:', filters);
 
-    // Process additional HTML content from POST request
-    const additionalContent = processPostHtmlContent(rawHtml);
+    // Format MongoDB jobs to HTML
+    const mongoJobsHtml = mongoJobs.length > 0 ? 
+      mongoJobs.map(job => formatJobPostingToHtml(job)).join('') : '';
 
-    // Render the React Email template to HTML
-    const emailHtml = render(JobEmailTemplate({
-      email,
-      jobs: mongoJobs,
-      additionalContent: additionalContent || undefined,
-      baseUrl
-    }));
+    // Process HTML from POST request
+    let htmlContent = rawHtml
+      .replace(/<h2/g, '<h2 class="job-title"')
+      .replace(/<h3/g, '<h3 class="company-name"')
+      .replace(/<p>/g, '<p class="job-description">')
+      .replace(/<a href/g, '<a class="job-link" href');
 
-    return NextResponse.json({ 
+    // Process links
+    const applyPattern = /apply|vaga|jobs|candidatar|gupy|catho|buscojobs|linkedin|\.io|\.com\/job|careers|recruiting|recruitment|hiring/i;
+    const companyPattern = /empresa|company|site|website|coporativo|corp|sobre|\.com$|\.com\/$|\.io$|\.tech$|\.ai$/i;
+
+    htmlContent = htmlContent.replace(
+      /<a class="job-link" href="(.*?)">(.*?)<\/a>/g,
+      (match: string, href: string, text: string): string => {
+        if (applyPattern.test(text) || applyPattern.test(href)) {
+          return `<p><a class="apply-button" href="${href}">Ver vaga</a></p>`;
+        }
+        if (companyPattern.test(text) || companyPattern.test(href)) {
+          return `<a class="company-link" href="${href}">Ver empresa</a>`;
+        }
+        return match;
+      }
+    );
+
+    // Process paragraphs
+    htmlContent = htmlContent.replace(
+      /<p class="job-description">([\s\S]*?)<\/p>/g,
+      (_: string, content: string): string => {
+        const spaced = content.replace(/([^.\s]|^)\.([A-Z])/g, '$1. $2');
+        return spaced.trim().split(/(?<=\.)\s+/)
+          .filter(s => s.trim().length > 0)
+          .map(s => `<p class="job-description">${s.trim()}</p>`)
+          .join(' ');
+      }
+    );
+
+    // Wrap POST request content
+    const postRequestContent = rawHtml.trim() ? `
+      <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
+        ${htmlContent}
+      </div>
+    ` : '';
+
+    // Combine MongoDB jobs + POST request content
+    const combinedContent = mongoJobsHtml + postRequestContent;
+
+    // Build full email
+    let fullEmail = `
+      ${generateEmailTemplateTop(email)}
+      ${combinedContent}
+      ${EMAIL_FOOTER}
+      ${EMAIL_TEMPLATE_BOTTOM}
+    `;
+    
+    // Add unsubscribe link
+    if (unsubscribeToken) {
+      fullEmail = fullEmail.replace(
+        "{{UNSUBSCRIBE_LINK}}", 
+        `${baseUrl}/api/unsubscribe?email=${encodeURIComponent(unsubscribeToken)}`
+      );
+    } else {
+      fullEmail = fullEmail.replace('{{UNSUBSCRIBE_LINK}}', `${baseUrl}/unsubscribe-success`);
+    }
+
+    // Inline CSS
+    const inlined = juice(fullEmail);
+
+    const response: EmailResponse = { 
       email, 
-      html: emailHtml,
+      html: inlined,
       mongoJobsCount: mongoJobs.length,
       hasPostContent: rawHtml.trim().length > 0,
       appliedFilters: filters
-    }, { status: 200 });
+    };
+
+    return NextResponse.json(response, { status: 200 });
     
   } catch (error: unknown) {
     console.error('Error processing email:', error);
@@ -171,9 +529,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       error.message : 
       'Unknown error during email processing';
     
-    return new NextResponse(`Error: ${errorMessage}`, {
-      status: 500,
-      headers: { 'Content-Type': 'text/plain' },
-    });
+    return NextResponse.json(
+      { error: errorMessage },
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }
