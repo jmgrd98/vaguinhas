@@ -392,6 +392,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const filters: { seniorityLevel?: string; stack?: string } = {};
     if (seniorityLevel) filters.seniorityLevel = seniorityLevel;
     if (stack) filters.stack = stack;
+    console.log('Filters:', filters);
 
     // Get filtered jobs from MongoDB
     const mongoJobs = await getJobsFromMongo(Object.keys(filters).length > 0 ? filters : undefined);
