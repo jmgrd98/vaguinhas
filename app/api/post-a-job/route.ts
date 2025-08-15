@@ -1,15 +1,7 @@
 // app/api/post-a-job/route.ts
-
+import { connectToDatabase } from '@/lib/mongodb';
 import { NextRequest, NextResponse } from 'next/server';
-import { MongoClient, Db, Collection, InsertOneResult, WithId, Document } from 'mongodb';
-
-// MongoDB connection string - store this in your .env.local file
-const MONGODB_URI = process.env.MONGODB_URI!;
-const DB_NAME = process.env.DB_NAME;
-
-// MongoDB client singleton
-let cachedClient: MongoClient | null = null;
-let cachedDb: Db | null = null;
+import { Collection, InsertOneResult, WithId, Document } from 'mongodb';
 
 // Type definitions
 type Stack = 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'dados' | 'design';
@@ -18,7 +10,7 @@ type JobStatus = 'pending' | 'approved' | 'rejected';
 type Currency = 'BRL' | 'USD' | 'EUR';
 type JobType = 'nacional' | 'internacional';
 
-interface JobPosting {
+export interface JobPosting {
   linkVaga: string;
   nomeEmpresa: string;
   cambio: Currency;
@@ -49,11 +41,6 @@ interface JobPostingRequest {
 interface ValidationResult {
   isValid: boolean;
   errors: string[];
-}
-
-interface DatabaseConnection {
-  client: MongoClient;
-  db: Db;
 }
 
 interface JobQuery {
@@ -91,25 +78,6 @@ interface ErrorResponse {
 }
 
 type ApiResponse<T = unknown> = SuccessResponse<T> | ErrorResponse;
-
-// Database connection function
-async function connectToDatabase(): Promise<DatabaseConnection> {
-  if (cachedClient && cachedDb) {
-    return { client: cachedClient, db: cachedDb };
-  }
-
-  if (!MONGODB_URI) {
-    throw new Error('Please define the MONGODB_URI environment variable');
-  }
-
-  const client = await MongoClient.connect(MONGODB_URI);
-  const db = client.db(DB_NAME);
-
-  cachedClient = client;
-  cachedDb = db;
-
-  return { client, db };
-}
 
 // Type guards
 function isValidStack(stack: string): stack is Stack {
