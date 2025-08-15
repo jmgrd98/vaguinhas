@@ -7,17 +7,48 @@ import { connectToDatabase } from '@/lib/mongodb';
 // Add at the top
 const baseUrl = process.env.NEXTAUTH_URL || "https://vaguinhas.com.br";
 
-async function getJobsFromMongo() {
+type SeniorityLevel = 'junior' | 'pleno' | 'senior';
+type Stack = 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'dados' | 'design';
+
+const isValidSeniorityLevel = (level: string): level is SeniorityLevel => {
+  return ['junior', 'pleno', 'senior'].includes(level);
+};
+
+const isValidStack = (stack: string): stack is string => {
+  return ['frontend', 'backend', 'fullstack', 'mobile', 'dados', 'design'].includes(stack);
+}
+
+
+// Updated function to accept filter parameters
+async function getJobsFromMongo(filters?: { seniorityLevel?: string; stack?: string }) {
   const { db } = await connectToDatabase();
   const collection: Collection<JobPosting> = db.collection<JobPosting>('jobs');
   
-  return collection.find().toArray();
+  // Build query object based on provided filters
+  const query: Partial<JobPosting> = {};
+  
+  if (filters?.seniorityLevel && isValidSeniorityLevel(filters.seniorityLevel)) {
+    query.seniorityLevel = filters.seniorityLevel as SeniorityLevel;
+  }
+  
+  if (filters?.stack && isValidStack(filters.stack)) {
+    query.stack = filters.stack as Stack;
+  }
+  
+  console.log('MongoDB query filters:', query);
+  
+  return collection.find(query).toArray();
 }
 
 function formatJobPostingToHtml(job: WithId<JobPosting>): string {
   return `
     <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
-      <h2 class="job-title">${job.cargo}</h2>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <h2 class="job-title" style="margin: 0;">${job.cargo}</h2>
+        <span class="featured-badge" style="background-color: white border: 1px solid #333; color: #333; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; display: inline-flex; align-items: center; gap: 4px;">
+          ⭐ vaga em destaque
+        </span>
+      </div>
       <h3 class="company-name">${job.nomeEmpresa}</h3>
       
       <p class="job-description"><strong>Tipo:</strong> ${job.tipoVaga}</p>
@@ -173,6 +204,19 @@ function generateEmailTemplateTop(email: string) {
         text-decoration: none;
       }
 
+    .featured-badge {
+      background-color: #ffd700;
+      color: #333;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
     .section-title {
       color: #333333;
       font-size: 28px;
@@ -297,37 +341,65 @@ const EMAIL_TEMPLATE_BOTTOM = `
 export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     let rawHtml: string;
-    const email = new URL(request.url).searchParams.get('email') || '';
+    const url = new URL(request.url);
+    const email = url.searchParams.get('email') || '';
+    
+    // Extract filters from query parameters
+    let seniorityLevel = url.searchParams.get('seniorityLevel') || undefined;
+    let stack = url.searchParams.get('stack') || undefined;
     
     // Generate unsubscribe token from email
     const unsubscribeToken = email ? btoa(email) : '';
     console.log('UNSUBSCRIBE TOKEN', unsubscribeToken)
     const contentType = request.headers.get('content-type') || '';
 
-    // Get jobs from MongoDB
-    const mongoJobs = await getJobsFromMongo();
-    console.log('Retrieved', mongoJobs.length, 'jobs from MongoDB');
-
-    // Format MongoDB jobs to HTML
-    const mongoJobsHtml = mongoJobs.length > 0 ? `
-      <h1 class="section-title">🎯 Vagas em Destaque</h1>
-      ${mongoJobs.map(job => formatJobPostingToHtml(job)).join('')}
-    ` : '';
-
-    // Handle HTML content from POST request
-    if (contentType.includes('text/html') || contentType.includes('text/plain')) {
+    // Handle different content types for POST request body
+    if (contentType.includes('application/json')) {
+      const body = await request.json();
+      rawHtml = body.html || '';
+      
+      // Extract filters from JSON body if not in query params
+      if (!seniorityLevel && body.seniorityLevel) {
+        seniorityLevel = body.seniorityLevel;
+      }
+      if (!stack && body.stack) {
+        stack = body.stack;
+      }
+    } else if (contentType.includes('application/x-www-form-urlencoded')) {
+      const formData = await request.formData();
+      rawHtml = formData.get('html') as string || '';
+      
+      // Extract filters from form data if not in query params
+      if (!seniorityLevel && formData.get('seniorityLevel')) {
+        seniorityLevel = formData.get('seniorityLevel') as string;
+      }
+      if (!stack && formData.get('stack')) {
+        stack = formData.get('stack') as string;
+      }
+    } else if (contentType.includes('text/html') || contentType.includes('text/plain')) {
       rawHtml = await request.text();
-    } 
-    // Unsupported media type
-    else {
-      return new NextResponse('Unsupported Media Type: Expected HTML', {
+    } else {
+      return new NextResponse('Unsupported Media Type: Expected HTML, JSON, or form data', {
         status: 415,
         headers: { 
           'Content-Type': 'text/plain',
-          'Accept': 'text/html'
+          'Accept': 'text/html, application/json, application/x-www-form-urlencoded'
         },
       });
     }
+
+    // Build filters object
+    const filters: { seniorityLevel?: string; stack?: string } = {};
+    if (seniorityLevel) filters.seniorityLevel = seniorityLevel;
+    if (stack) filters.stack = stack;
+
+    // Get filtered jobs from MongoDB
+    const mongoJobs = await getJobsFromMongo(Object.keys(filters).length > 0 ? filters : undefined);
+    console.log('Retrieved', mongoJobs.length, 'jobs from MongoDB with filters:', filters);
+
+    // Format MongoDB jobs to HTML
+    const mongoJobsHtml = mongoJobs.length > 0 ? 
+      mongoJobs.map(job => formatJobPostingToHtml(job)).join('') : '';
 
     // Process HTML from POST request
     let htmlContent = rawHtml
@@ -367,7 +439,6 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
     // Wrap POST request content
     const postRequestContent = rawHtml.trim() ? `
-      <h1 class="section-title">📧 Vagas Recebidas</h1>
       <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif;">
         ${htmlContent}
       </div>
@@ -401,7 +472,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       email, 
       html: inlined,
       mongoJobsCount: mongoJobs.length,
-      hasPostContent: rawHtml.trim().length > 0
+      hasPostContent: rawHtml.trim().length > 0,
+      appliedFilters: filters
     }, { status: 200 });
     
   } catch (error: unknown) {
