@@ -53,9 +53,7 @@ async function getJobsFromMongo(filters?: JobFilters): Promise<WithId<JobPosting
 
 function formatJobPostingToHtml(job: WithId<JobPosting>): string {
   // Safely handle potential undefined date
-  const publishedDate = job.createdAt 
-    ? new Date(job.createdAt).toLocaleDateString('pt-BR')
-    : 'Data não disponível';
+
 
   return `
     <div class="job-content" style="color: #444444; line-height: 1.5; font-family: Arial, sans-serif; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 1px solid #eaeaea;">
